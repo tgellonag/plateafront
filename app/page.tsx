@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { connection } from "next/server";
+import { AskForm } from "./ask-form";
 import { getHealth } from "@/modules/health/api";
 import { getMovies, posterUrl } from "@/modules/movies/api";
 
@@ -19,6 +20,8 @@ export default async function Home() {
     <main className="mx-auto w-full max-w-5xl p-8">
       <h1 className="text-2xl font-semibold text-primary">Platea</h1>
       <p className="mt-1 text-sm text-secondary">{healthText}</p>
+
+      <AskForm />
 
       {movies.status === "rejected" ? (
         <p className="mt-8 text-base text-primary">Could not load movies.</p>
