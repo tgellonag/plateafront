@@ -1,0 +1,33 @@
+name: CI · PR
+
+on:
+  pull_request:
+    branches: [development, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality
+    uses: ./.github/workflows/_quality.yml
+
+  test:
+    name: Test
+    uses: ./.github/workflows/_test.yml
+
+  build:
+    name: Build
+    uses: ./.github/workflows/_build.yml
+
+  semgrep:
+    name: SAST
+    uses: ./.github/workflows/_semgrep.yml
+
+  trivy:
+    name: SCA
+    uses: ./.github/workflows/_trivy.yml

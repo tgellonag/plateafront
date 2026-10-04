@@ -1,0 +1,45 @@
+name: _trivy
+
+on:
+  workflow_call:
+    inputs:
+      severity:
+        description: Severities that fail the job
+        type: string
+        default: HIGH,CRITICAL
+      warn-severity:
+        description: Severities reported as a warning only (empty = skip)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-fs:
+    name: SCA · Trivy fs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Trivy fs (warning only)
+        if: inputs.warn-severity != ''
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: ${{ inputs.warn-severity }}
+          exit-code: "0"
+
+      - name: Trivy fs (blocking)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: ${{ inputs.severity }}
+          exit-code: "1"
