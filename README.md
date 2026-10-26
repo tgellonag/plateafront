@@ -1,35 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Platea · Web
 
-## Getting Started
+Next.js + TypeScript. Interfaz móvil y oscura desde 360 px: portada sin registro, configuración, invitación con código/QR/cuenta regresiva, participantes en vivo, votación, votos ajenos, match, ranking, perfil IA, segunda ronda, confirmación y resultado privado del grupo. Los nombres de películas se muestran en inglés, manteniendo la interfaz en español y la disponibilidad de Chile.
 
-First, run the development server:
+## Ejecutar
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `npm ci`.
+2. Copiar `.env.example` a `.env.local`; `NEXT_PUBLIC_API_URL=http://localhost:8080`.
+3. Iniciar `../PlateaBack` con PostgreSQL y precargar TMDB siguiendo su README.
+4. `npm run dev`; abrir `http://localhost:3000`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Rutas: `/`, `/join/CODIGO`, `/room/ID`, `/room/ID/manage` y `/metrics` (panel de administración). No hay enlaces públicos de resultados; solo se comparte la invitación.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Antes de iniciar la primera ronda, «Sala» contiene los filtros, el perfil con IA y «Iniciar votación». «Sesión» solo se habilita al comenzar la primera ronda; acceder a su URL antes redirige a Sala. Durante la votación contiene la gestión de rondas, el perfil con IA, el ranking provisional y «Salir». «Volver» regresa a la votación sin abandonar la participación. La tarjeta de votación muestra el afiche a todo el ancho con título y datos superpuestos sobre un degradado inferior; el ranking final permanece en la vista de resultado.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+El selector de servicios consulta `GET /api/v1/providers` del backend, que obtiene la lista de TMDB para Chile. No hay servicios hardcodeados. Incluye búsqueda, carga, reintento y aviso de caché desactualizada. Las películas se filtran por disponibilidad de suscripción; no incluye alquileres ni compras.
 
-## Learn More
+El token se guarda por sala en sessionStorage, limitado a la pestaña y conservado al recargar; al cerrar la pestaña se pierde el acceso guardado. No se recuperan tokens anteriores de localStorage. Una pestaña nueva e independiente obtiene otra identidad; duplicar una pestaña puede copiar inicialmente su sessionStorage según el navegador. El token no se envía en enlaces, QR ni URL del WebSocket. La conexión se autentica con su primer mensaje; los cambios se consultan por HTTP al conectarse, recibir avisos, reenfocar la ventana y reconectarse. Reconexión exponencial hasta 30 s. Una respuesta fallida no se presenta como voto exitoso; se vuelve a consultar el estado. Sin afiche se muestra el título. Los errores de IA conservan el resto del flujo.
 
-To learn more about Next.js, take a look at the following resources:
+El anfitrión debe guardar filtros antes de iniciar. El código rota automáticamente antes de vencer y puede renovarse manualmente. La segunda ronda no repite títulos y conserva el ranking anterior. El cierre es manual y la elección se confirma por separado. «Salir» actualiza la lista activa en el servidor y libera el cupo del participante, pero conserva sus votos e identidad. Al salir el administrador, el rol pasa al participante activo que entró primero. Si todos salen, lo recibe la próxima persona que ingrese o reanude. Volver tras salir cuenta como una nueva entrada para el orden de administración, pero recargar o navegar no cambia ese orden. «Volver a mi sala anterior» reanuda la participación con el mismo token; ingresar otra vez por código también reutiliza la identidad guardada, sin duplicarla. Una desconexión temporal no elimina participantes.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Para excluir una demostración de la tasa de decisión, marcarla en la portada **antes de crearla**. El panel `/metrics` pide `ADMIN_TOKEN`, no lo persiste ni lo incluye en enlaces.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Compilación y despliegue
 
-## Deployed on Vercel
+`npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`.
 
-[Deploy](https://plateafront.vercel.app/)
+No se agregaron ni ejecutaron pruebas por instrucción del usuario. Se mantienen las herramientas y workflows preexistentes.
 
+Vercel debe tener `NEXT_PUBLIC_API_URL` con la URL HTTPS de Render **antes de compilar**. En Render configurar `CORS_ORIGIN` con el origen de Vercel. El frontend no necesita claves de TMDB, Gemini, Neon ni administración. El backend mantiene las reglas y PostgreSQL es la fuente de verdad; el cliente no decide ranking ni match.
+
+La atribución TMDB y el aviso de servicio gratuito de mejor esfuerzo son permanentes. Los servicios externos requieren credenciales y el catálogo local debe estar precargado para funcionar durante una caída de TMDB. La validación real de usabilidad, carga y despliegue no se sustituye por una compilación.
