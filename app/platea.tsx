@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  Copy,
   Film,
   Heart,
   LogIn,
@@ -24,8 +25,6 @@ import {
   Star,
   UserRoundMinus,
   Users,
-  Wifi,
-  WifiOff,
   X,
 } from "lucide-react";
 
@@ -162,9 +161,9 @@ export function Platea() {
     [code, setCode] = useState(""),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
+    [copyCount, setCopyCount] = useState(0),
     [busy, setBusy] = useState(false),
     [booting, setBooting] = useState(true),
-    [connected, setConnected] = useState(false),
     [prompt, setPrompt] = useState(""),
     [qr, setQr] = useState(""),
     [seconds, setSeconds] = useState(300),
@@ -176,7 +175,13 @@ export function Platea() {
     [providerStale, setProviderStale] = useState(false),
     [providerSearch, setProviderSearch] = useState(""),
     [filters, setFilters] = useState<Filters | null>(null);
-  const management = managementRoute && (state?.session.round ?? 0) > 0;
+  const management =
+    state?.session.status === "closed" || (managementRoute && (state?.session.round ?? 0) > 0);
+  useEffect(() => {
+    if (!copyCount) return;
+    const timer = setTimeout(() => setCopyCount(0), 1000);
+    return () => clearTimeout(timer);
+  }, [copyCount]);
   useEffect(() => {
     if (managementRoute && state?.session.round === 0)
       history.replaceState({}, "", `/room/${state.session.id}`);
@@ -330,7 +335,6 @@ export function Platea() {
         }
         ws.send(JSON.stringify({ token: access!.token }));
         delay = 1000;
-        setConnected(true);
         void refresh();
       };
       ws.onmessage = () => {
@@ -338,7 +342,6 @@ export function Platea() {
       };
       ws.onclose = (event) => {
         if (stopped || version !== generation.current || leaving.current) return;
-        setConnected(false);
         if (!stopped && event.code !== 1008) {
           timer = setTimeout(connect, delay);
           delay = Math.min(delay * 2, 30000);
@@ -508,7 +511,6 @@ export function Platea() {
     setFilters(null);
     setError("");
     setNotice("");
-    setConnected(false);
     leaving.current = false;
     history.pushState({}, "", "/");
   }
@@ -598,12 +600,6 @@ export function Platea() {
               <LogIn aria-hidden="true" />
               Unirse
             </button>
-            {recentAccess && (
-              <button type="button" disabled={busy} onClick={() => void resume()}>
-                <LogIn aria-hidden="true" />
-                Volver a mi sala anterior
-              </button>
-            )}
             <details className="session-options">
               <summary>Opciones</summary>
               <label className="test-option">
@@ -622,27 +618,15 @@ export function Platea() {
           <div className="room-heading">
             <div>
               {session?.status === "voting" && <p className="round-label">Ronda {session.round}</p>}
-              <h1>
-                {management
-                  ? "Sesión"
-                  : session?.status === "open"
-                    ? "Sala"
-                    : session?.status === "voting"
-                      ? "Votación"
-                      : "Resultado"}
-              </h1>
+              <h1>{management ? "Sesión" : session?.status === "open" ? "Sala" : "Votación"}</h1>
             </div>
             <div className="room-status">
-              <span className={`connection ${connected ? "online" : ""}`}>
-                {connected ? <Wifi aria-hidden="true" /> : <WifiOff aria-hidden="true" />}
-                {connected ? "En vivo" : "Reconectando…"}
-              </span>
               {session?.round === 0 ? (
                 <button disabled={busy} onClick={leave}>
                   <LogOut aria-hidden="true" />
                   Salir
                 </button>
-              ) : (
+              ) : session?.status !== "closed" ? (
                 <button
                   disabled={busy}
                   onClick={() => {
@@ -653,32 +637,27 @@ export function Platea() {
                   {management ? <ArrowLeft aria-hidden="true" /> : <Settings2 aria-hidden="true" />}
                   {management ? "Volver" : "Sesión"}
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
-          {management && (
+          {management && session?.status !== "closed" && (
             <section className="panel">
               <h2>Rondas</h2>
               <p>
-                {session?.status === "closed"
-                  ? "Votación cerrada"
-                  : `${state.participants.filter((p) => p.progress === roundMovies.length).length} de ${state.participants.length} participantes terminaron.`}
+                {state.participants.filter((p) => p.progress === roundMovies.length).length} de{" "}
+                {state.participants.length} participantes terminaron.
               </p>
-              {host && (
+              {host && session?.status === "voting" && (
                 <div className="actions">
-                  {session?.status === "voting" && (
-                    <>
-                      <button disabled={busy} onClick={() => run("close")}>
-                        <Square aria-hidden="true" />
-                        Cerrar votación
-                      </button>
-                      {session.round === 1 && matches.length === 0 && (
-                        <button disabled={busy} onClick={() => run("next")}>
-                          <Play aria-hidden="true" />
-                          Segunda ronda
-                        </button>
-                      )}
-                    </>
+                  <button disabled={busy} onClick={() => run("close")}>
+                    <Square aria-hidden="true" />
+                    Cerrar votación
+                  </button>
+                  {session.round === 1 && matches.length === 0 && (
+                    <button disabled={busy} onClick={() => run("next")}>
+                      <Play aria-hidden="true" />
+                      Segunda ronda
+                    </button>
                   )}
                 </div>
               )}
@@ -705,7 +684,31 @@ export function Platea() {
                           alt="QR de invitación a la sala"
                         />
                       )}
-                      <div className="actions">
+                      <div className="actions invitation-actions">
+                        <button
+                          aria-label={
+                            copyCount ? "Código copiado. Copiar de nuevo" : "Copiar código"
+                          }
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(invitation.code);
+                              setCopyCount((count) => count + 1);
+                            } catch {
+                              setError("No se pudo copiar el código. Cópialo manualmente.");
+                            }
+                          }}
+                        >
+                          {copyCount ? (
+                            <Check
+                              key={copyCount}
+                              className="copy-confirmation"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <Copy aria-hidden="true" />
+                          )}
+                          Copiar código
+                        </button>
                         <button
                           onClick={() => void share(`${location.origin}/join/${invitation.code}`)}
                         >
@@ -732,10 +735,13 @@ export function Platea() {
                           {p.name}
                           {p.is_host ? " · anfitrión" : ""}
                         </span>
-                        {host && !p.is_host && (
+                        {host && !p.is_host && p.id !== me?.id && (
                           <button
                             disabled={busy}
-                            onClick={() => run("kick", { participant_id: p.id })}
+                            onClick={() => {
+                              if (window.confirm(`¿Expulsar a ${p.name} de la sesión?`))
+                                run("kick", { participant_id: p.id });
+                            }}
                           >
                             <UserRoundMinus aria-hidden="true" />
                             Expulsar
@@ -941,7 +947,7 @@ export function Platea() {
                 )}
               </>
             ))}
-          {session?.status !== "open" && (management || session?.status === "closed") && (
+          {management && (
             <section className="panel">
               <h2>
                 {matches.length > 0 && <Heart aria-hidden="true" />}
@@ -951,9 +957,6 @@ export function Platea() {
                     ? "Ranking"
                     : "Ranking provisional"}
               </h2>
-              {state.movies.every((m) => m.likes + m.dislikes === 0) && (
-                <p>Sin votos. Ordenado por popularidad.</p>
-              )}
               <ol className="ranking">
                 {state.movies.map((m) => (
                   <li key={m.id} className={m.match ? "matched" : ""}>
@@ -961,7 +964,6 @@ export function Platea() {
                     <div>
                       <strong>{m.title}</strong>
                       <small className="vote-counts">
-                        <span>Ronda {m.round}</span>
                         <span>
                           <Heart aria-hidden="true" />
                           <span className="sr-only">Me gusta: </span>
@@ -972,7 +974,6 @@ export function Platea() {
                           <span className="sr-only">No me gusta: </span>
                           {m.dislikes}
                         </span>
-                        <span>{m.score} pts</span>
                       </small>
                       <details>
                         <summary>Ver votos</summary>
