@@ -279,13 +279,19 @@ header {
   font-size: 0.75rem;
 }
 .room-status {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  align-items: center;
   gap: 4px;
 }
 .room-status button {
   min-height: 44px;
   padding: 8px 12px;
+}
+.room-status .connection-warning {
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
 }
 .code {
   margin: 16px 0 4px;
