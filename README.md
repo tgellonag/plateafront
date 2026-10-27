@@ -27,9 +27,9 @@ Para excluir una demostración de la tasa de decisión, marcarla en la portada *
 
 `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build`.
 
-`npm test` incluye las comprobaciones de cola, reintentos, almacenamiento y carreras con snapshots/cambios de acceso. La comprobación de navegador usa Playwright externo (sin dependencia nueva en la app): con Next local en ejecución, `PLAYWRIGHT_MODULE=/ruta/a/playwright/index.mjs node scripts/check-voting.mjs`. Simula la API, mide avance con POST de 800 ms y comprueba las consultas por vista; `BASELINE=1` permite medir la implementación anterior.
+Las pruebas de votación y scripts de comprobación añadidos durante el desarrollo se retiraron a petición del usuario; se conservan las pruebas preexistentes. La validación funcional queda pendiente de prueba manual por el usuario.
 
-Para comprobar **los servicios reales en ejecución**, usar `PLAYWRIGHT_MODULE=/ruta/a/playwright/index.mjs node scripts/check-voting-live.mjs`: crea una sala local de demostración excluida de métricas, recupera un voto pendiente rechazado y verifica un voto nuevo hasta PostgreSQL. Si se usa Docker, los cambios Go no se recargan automáticamente: ejecutar en `../PlateaBack` `docker compose -f compose.yaml -f compose.local.yaml up -d --build --no-deps api`. No reiniciar ni borrar la base. Si aparece «Datos inválidos» al votar después de actualizar el frontend, comprobar que el backend en ejecución también fue reconstruido; conservar los votos pendientes y usar «Reintentar votos» tras actualizarlo.
+Si se usa Docker, los cambios Go no se recargan automáticamente: ejecutar en `../PlateaBack` `docker compose -f compose.yaml -f compose.local.yaml up -d --build --no-deps api`. No reiniciar ni borrar la base. Si falla el envío después de actualizar el frontend, comprobar que el backend en ejecución también fue reconstruido; conservar los votos pendientes y pulsar el icono de conexión junto al botón superior derecho para reintentar.
 
 Vercel debe tener `NEXT_PUBLIC_API_URL` con la URL HTTPS de Render **antes de compilar**. En Render configurar `CORS_ORIGIN` con el origen de Vercel. El frontend no necesita claves de TMDB, Gemini, Neon ni administración. El backend mantiene las reglas y PostgreSQL es la fuente de verdad; el cliente no decide ranking ni match.
 
