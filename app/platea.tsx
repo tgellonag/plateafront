@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { VoteQueue, shouldRefreshRoom, type VoteReceipt } from "./vote-queue";
 import QRCode from "qrcode";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -25,10 +26,13 @@ import {
   Star,
   UserRoundMinus,
   Users,
+  WifiOff,
   X,
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const noSubscription = () => () => {};
+const zero = () => 0;
 const genres: Record<number, string> = {
   28: "Acción",
   12: "Aventura",
@@ -156,6 +160,7 @@ export function Platea() {
   const pathname = usePathname();
   const managementRoute = pathname.endsWith("/manage");
   const [access, setAccess] = useState<Access | null>(null),
+    [voteQueue, setVoteQueue] = useState<VoteQueue | null>(null),
     [state, setState] = useState<State | null>(null),
     [name, setName] = useState(""),
     [code, setCode] = useState(""),
@@ -177,6 +182,11 @@ export function Platea() {
     [filters, setFilters] = useState<Filters | null>(null);
   const management =
     state?.session.status === "closed" || (managementRoute && (state?.session.round ?? 0) > 0);
+  useSyncExternalStore(
+    voteQueue?.subscribe ?? noSubscription,
+    voteQueue?.getSnapshot ?? zero,
+    zero,
+  );
   useEffect(() => {
     if (!copyCount) return;
     const timer = setTimeout(() => setCopyCount(0), 1000);
@@ -219,10 +229,34 @@ export function Platea() {
       cancelled = true;
     };
   }, [loadProviders]);
-  const refreshing = useRef(false),
+  const refreshing = useRef<Promise<void> | null>(null),
     generation = useRef(0),
     leaving = useRef(false),
-    refreshPending = useRef(false);
+    refreshPending = useRef(false),
+    queueRef = useRef<VoteQueue | null>(null),
+    refreshLatest = useRef<() => Promise<void>>(async () => {}),
+    managementRef = useRef(management);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!queueRef.current?.hasPending) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      queueRef.current?.dispose();
+    };
+  }, []);
+  const invalidateAccess = useCallback(() => {
+    generation.current++;
+    refreshing.current = null;
+    refreshPending.current = false;
+    queueRef.current?.revoke();
+    setBusy(false);
+    setState(null);
+    setError("Tu acceso a la sala ya no está activo");
+  }, []);
   const activate = useCallback(async (next: Access, signal?: AbortSignal) => {
     setRecentAccess(next);
     setNotice("");
@@ -243,9 +277,24 @@ export function Platea() {
     );
     if (signal?.aborted) return;
     generation.current++;
-    refreshing.current = false;
+    refreshing.current = null;
     refreshPending.current = false;
     leaving.current = false;
+    queueRef.current?.dispose();
+    const queue = new VoteQueue(
+      ready,
+      () => sessionStorage,
+      (vote, signal) =>
+        request<VoteReceipt>(
+          `/api/v1/sessions/${next.session_id}/vote`,
+          next.token,
+          { round: vote.round, movie_id: vote.movie_id, liked: vote.liked },
+          AbortSignal.any([signal, AbortSignal.timeout(10000)]),
+        ),
+      () => refreshLatest.current(),
+    );
+    queueRef.current = queue;
+    setVoteQueue(queue);
     setState(ready);
     setFilters(ready.session.filters);
     setAccess(next);
@@ -292,33 +341,40 @@ export function Platea() {
       controller.abort();
     };
   }, [activate]);
-  const refresh = useCallback(async () => {
+  const refresh = useCallback((): Promise<void> => {
+    if (!access || leaving.current) return Promise.resolve();
     if (refreshing.current) {
       refreshPending.current = true;
-      return;
+      return refreshing.current;
     }
-    refreshing.current = true;
     const version = generation.current;
-    try {
-      do {
-        refreshPending.current = false;
-        const next = await request<State>(`/api/v1/sessions/${access?.session_id}`, access?.token);
+    const task = (async () => {
+      try {
+        do {
+          refreshPending.current = false;
+          const next = await request<State>(`/api/v1/sessions/${access.session_id}`, access.token);
+          if (version !== generation.current || leaving.current) return;
+          queueRef.current?.reconcile(next);
+          setState(next);
+          setFilters((old) => old ?? next.session.filters);
+          setError("");
+        } while (refreshPending.current);
+      } catch (e) {
         if (version !== generation.current || leaving.current) return;
-        setState(next);
-        setFilters((old) => old ?? next.session.filters);
-        setError("");
-      } while (refreshPending.current);
-    } catch (e) {
-      if (version !== generation.current || leaving.current) return;
-      if (e instanceof RequestError && (e.status === 401 || e.status === 404)) setState(null);
-      setError((e as Error).message);
-    } finally {
-      if (version === generation.current) refreshing.current = false;
-    }
-  }, [access]);
+        if (e instanceof RequestError && (e.status === 401 || e.status === 404)) invalidateAccess();
+        else setError((e as Error).message);
+      } finally {
+        if (version === generation.current) refreshing.current = null;
+      }
+    })();
+    refreshing.current = task;
+    return task;
+  }, [access, invalidateAccess]);
   useEffect(() => {
-    if (access) void Promise.resolve().then(refresh);
-  }, [access, refresh]);
+    refreshLatest.current = refresh;
+    managementRef.current = management;
+    if (access) void refresh();
+  }, [access, refresh, management]);
   useEffect(() => {
     if (!access) return;
     const version = generation.current;
@@ -337,8 +393,14 @@ export function Platea() {
         delay = 1000;
         void refresh();
       };
-      ws.onmessage = () => {
-        if (!stopped && version === generation.current && !leaving.current) void refresh();
+      ws.onmessage = (event) => {
+        if (
+          !stopped &&
+          version === generation.current &&
+          !leaving.current &&
+          shouldRefreshRoom(event.data, managementRef.current)
+        )
+          void refresh();
       };
       ws.onclose = (event) => {
         if (stopped || version !== generation.current || leaving.current) return;
@@ -346,8 +408,7 @@ export function Platea() {
           timer = setTimeout(connect, delay);
           delay = Math.min(delay * 2, 30000);
         } else if (event.code === 1008) {
-          setError("Tu acceso a la sala ya no está activo");
-          setState(null);
+          invalidateAccess();
         }
       };
       ws.onerror = () => ws.close();
@@ -363,7 +424,7 @@ export function Platea() {
       ws?.close();
       window.removeEventListener("focus", focus);
     };
-  }, [access, refresh]);
+  }, [access, refresh, invalidateAccess]);
   const act = useCallback(
     async (action: string, body: unknown = {}) => {
       if (!access) return;
@@ -475,6 +536,13 @@ export function Platea() {
   }
   async function leave() {
     if (busy || leaving.current) return;
+    if (
+      queueRef.current?.hasPending &&
+      !window.confirm(
+        "Hay votos sin confirmar. ¿Salir de todos modos? Los votos no guardados podrían perderse.",
+      )
+    )
+      return;
     if (access) {
       leaving.current = true;
       setBusy(true);
@@ -498,7 +566,11 @@ export function Platea() {
       }
     }
     generation.current++;
-    refreshing.current = false;
+    queueRef.current?.revoke();
+    queueRef.current?.dispose();
+    queueRef.current = null;
+    setVoteQueue(null);
+    refreshing.current = null;
     refreshPending.current = false;
     try {
       sessionStorage.removeItem("platea-last");
@@ -524,7 +596,19 @@ export function Platea() {
   const ownVotes = new Set(
     state?.votes.filter((v) => v.participant_id === me?.id).map((v) => v.movie_id),
   );
-  const current = roundMovies.find((m) => !ownVotes.has(m.id));
+  const remaining = roundMovies.filter((m) => !ownVotes.has(m.id) && !voteQueue?.hasVoted(m.id));
+  const current = remaining[0];
+  const upcomingPosters = remaining
+    .slice(1, 3)
+    .map((m) => m.id)
+    .join(",");
+  useEffect(() => {
+    if (management || !upcomingPosters) return;
+    upcomingPosters.split(",").forEach((id) => {
+      const poster = new window.Image();
+      poster.src = `${API}/api/v1/movies/${id}/poster`;
+    });
+  }, [management, upcomingPosters]);
   const matches = state?.movies.filter((m) => m.match) ?? [];
   return (
     <main className="shell app-shell" aria-busy={busy || booting}>
@@ -621,6 +705,18 @@ export function Platea() {
               <h1>{management ? "Sesión" : session?.status === "open" ? "Sala" : "Votación"}</h1>
             </div>
             <div className="room-status">
+              {!!voteQueue?.errors.length && (
+                <button
+                  className="connection-warning"
+                  aria-label="Sin conexión. Reintentar envío de votos"
+                  title="Sin conexión"
+                  onClick={() => {
+                    void refresh().then(() => voteQueue.retry());
+                  }}
+                >
+                  <WifiOff size={18} aria-hidden="true" />
+                </button>
+              )}
               {session?.round === 0 ? (
                 <button disabled={busy} onClick={leave}>
                   <LogOut aria-hidden="true" />
@@ -919,7 +1015,7 @@ export function Platea() {
                         <div className="vote-actions">
                           <button
                             disabled={busy}
-                            onClick={() => run("vote", { movie_id: current.id, liked: false })}
+                            onClick={() => voteQueue?.enqueue(current.id, false)}
                           >
                             <X aria-hidden="true" />
                             No me gusta
@@ -927,7 +1023,7 @@ export function Platea() {
                           <button
                             className="primary"
                             disabled={busy}
-                            onClick={() => run("vote", { movie_id: current.id, liked: true })}
+                            onClick={() => voteQueue?.enqueue(current.id, true)}
                           >
                             <Heart aria-hidden="true" />
                             Me gusta
@@ -936,11 +1032,8 @@ export function Platea() {
                       </>
                     ) : (
                       <div className="finished panel">
-                        <h2>
-                          <Check aria-hidden="true" />
-                          Ronda completada
-                        </h2>
-                        <p>Votos guardados. Esperando al anfitrión.</p>
+                        <h2>Esperando al anfitrión</h2>
+                        <p>Puedes revisar la sesión mientras esperas.</p>
                       </div>
                     )}
                   </section>
