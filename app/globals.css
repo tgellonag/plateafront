@@ -226,8 +226,7 @@ header {
 }
 .welcome form > button,
 .lobby > .primary,
-.settings form > button,
-.profile form > button {
+.settings form > button {
   width: 100%;
 }
 .welcome form > button {
@@ -575,8 +574,7 @@ summary {
   font-size: 0.8125rem;
   cursor: pointer;
 }
-.settings > summary,
-.profile > summary {
+.settings > summary {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -589,32 +587,20 @@ summary {
   margin-left: auto;
   color: var(--muted);
 }
-.settings[open] > summary .disclosure-icon,
-.profile[open] > summary .disclosure-icon {
+.settings[open] > summary .disclosure-icon {
   rotate: 180deg;
 }
-.settings > summary::-webkit-details-marker,
-.profile > summary::-webkit-details-marker {
+.settings > summary::-webkit-details-marker {
   display: none;
 }
-.settings > summary .lucide,
-.profile > summary .lucide {
+.settings > summary .lucide {
   color: var(--accent);
 }
-.settings[open] > summary,
-.profile[open] > summary {
+.settings[open] > summary {
   margin-bottom: 16px;
 }
-.settings,
-.profile {
+.settings {
   padding-block: 0;
-}
-.profile textarea {
-  min-height: 96px;
-  resize: vertical;
-}
-.profile form > button {
-  margin-bottom: 0;
 }
 .alert {
   display: grid;
