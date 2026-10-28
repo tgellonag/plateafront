@@ -21,7 +21,6 @@ import {
   Settings2,
   Share2,
   SlidersHorizontal,
-  Sparkles,
   Square,
   Star,
   UserRoundMinus,
@@ -84,7 +83,6 @@ type State = {
     id: string;
     status: "open" | "voting" | "closed";
     filters: Filters;
-    group_profile: string;
     round: number;
     chosen_movie_id: number | null;
   };
@@ -169,7 +167,6 @@ export function Platea() {
     [copyCount, setCopyCount] = useState(0),
     [busy, setBusy] = useState(false),
     [booting, setBooting] = useState(true),
-    [prompt, setPrompt] = useState(""),
     [qr, setQr] = useState(""),
     [seconds, setSeconds] = useState(300),
     [isTest, setIsTest] = useState(false),
@@ -1108,43 +1105,6 @@ export function Platea() {
                 ))}
               </ol>
             </section>
-          )}
-          {(management || session?.status === "open") && (
-            <details className="panel profile" open>
-              <summary>
-                <Sparkles aria-hidden="true" />
-                Perfil con IA
-                <ChevronDown className="disclosure-icon" aria-hidden="true" />
-              </summary>
-              <div>
-                <p>
-                  {session?.group_profile ||
-                    "Sin perfil generado. La IA no modifica los votos ni el ranking."}
-                </p>
-              </div>
-              {host && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    run("profile", { prompt });
-                  }}
-                >
-                  <label>
-                    Preferencias (opcional)
-                    <textarea
-                      maxLength={500}
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Ej. comedia, menos de dos horas"
-                    />
-                  </label>
-                  <button disabled={busy}>
-                    <Sparkles aria-hidden="true" />
-                    {busy ? "Procesando…" : "Generar perfil"}
-                  </button>
-                </form>
-              )}
-            </details>
           )}
           {management && (
             <div className="actions">
