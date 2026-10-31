@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Heart, LogOut, Play, Square, X } from "lucide-react";
+import { useState } from "react";
 import type { State } from "@/lib/api";
 import type { Room } from "../use-room";
 import { Poster } from "./poster";
@@ -18,6 +19,7 @@ export function Management({
 }) {
   const { busy, run, leave } = room;
   const { session } = state;
+  const [expanded, setExpanded] = useState(false);
   const host = state.me.is_host;
   const roundSize = state.movies.filter((m) => m.round === session.round).length;
   const matches = state.movies.filter((m) => m.match);
@@ -47,19 +49,20 @@ export function Management({
         </section>
       )}
       <section className="panel">
-        <h2>
-          {matches.length > 0 && <Heart aria-hidden="true" />}
-          {matches.length
-            ? "Match"
-            : session.status === "closed"
-              ? "Ranking"
-              : "Ranking provisional"}
-        </h2>
-        <ol className="ranking">
-          {state.movies.map((m) => (
+        <h2>Ranking</h2>
+        <ol id="movie-ranking" className="ranking">
+          {(expanded ? state.movies : state.movies.slice(0, 5)).map((m) => (
             <li key={m.id} className={m.match ? "matched" : ""}>
+              <span className="ranking-position">
+                {m.match && (
+                  <>
+                    <Heart className="match-heart" aria-hidden="true" />
+                    <span className="sr-only">Match</span>
+                  </>
+                )}
+              </span>
               <Poster movie={m} thumbnail />
-              <div>
+              <div className="ranking-details">
                 <strong>{m.title}</strong>
                 <small className="vote-counts">
                   <span>
@@ -112,6 +115,16 @@ export function Management({
             </li>
           ))}
         </ol>
+        {state.movies.length > 5 && (
+          <button
+            className="ranking-toggle"
+            aria-expanded={expanded}
+            aria-controls="movie-ranking"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Mostrar menos" : "Mostrar más"}
+          </button>
+        )}
       </section>
       <FiltersSummary filters={session.filters} providers={providers} />
       <div className="actions">

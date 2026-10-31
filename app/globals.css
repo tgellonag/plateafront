@@ -514,14 +514,27 @@ legend {
   border-bottom: 1px solid var(--line);
   counter-increment: rank;
 }
-.ranking li::before {
-  content: counter(rank, decimal-leading-zero);
+.ranking-position {
+  display: flex;
+  flex: 0 0 20px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   padding-top: 2px;
+}
+.ranking-position::before {
+  content: counter(rank, decimal-leading-zero);
   color: var(--muted);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
-.ranking li > div {
+.ranking-position .match-heart {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+  fill: currentColor;
+}
+.ranking-details {
   flex: 1;
   min-width: 0;
 }
@@ -543,6 +556,10 @@ legend {
   min-height: 44px;
   padding: 8px 10px;
   font-size: 0.75rem;
+}
+.ranking-toggle {
+  display: flex;
+  margin-inline: auto;
 }
 .vote-counts {
   display: flex;
