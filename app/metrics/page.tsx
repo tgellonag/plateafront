@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChartNoAxesColumn, Film } from "lucide-react";
+import { request } from "@/lib/api";
 
 type Metrics = {
   created: number;
@@ -34,12 +35,7 @@ export default function MetricsPage() {
           setBusy(true);
           setError("");
           try {
-            const res = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"}/api/v1/metrics`,
-              { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
-            );
-            if (!res.ok) throw new Error("Acceso inválido o métricas no disponibles");
-            setMetrics(await res.json());
+            setMetrics(await request<Metrics>("/api/v1/metrics", token));
           } catch (e) {
             setError((e as Error).message);
           } finally {
