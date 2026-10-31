@@ -33,6 +33,7 @@ export function useRoom() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
+    [filtersPending, setFiltersPending] = useState(false),
     [booting, setBooting] = useState(true),
     [recentAccess, setRecentAccess] = useState<Access | null>(null);
   const management =
@@ -256,7 +257,6 @@ export function useRoom() {
         );
         if (version !== generation.current) return;
         await refresh();
-        if (action === "filters") setNotice("Filtros guardados");
         return result;
       } catch (e) {
         if (version !== generation.current) return;
@@ -389,6 +389,8 @@ export function useRoom() {
     notice,
     setNotice,
     busy,
+    filtersPending,
+    setFiltersPending,
     booting,
     recentAccess,
     management,

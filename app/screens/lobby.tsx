@@ -138,7 +138,7 @@ export function Lobby({
         <div className="actions">
           <button
             className="primary"
-            disabled={busy || state.participants.length < 2}
+            disabled={busy || room.filtersPending || state.participants.length < 2}
             onClick={() => run("start")}
           >
             <Play aria-hidden="true" />

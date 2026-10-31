@@ -4,8 +4,18 @@ import { Check, Heart, LogOut, Play, Square, X } from "lucide-react";
 import type { State } from "@/lib/api";
 import type { Room } from "../use-room";
 import { Poster } from "./poster";
+import { FiltersSummary } from "./filters-form";
+import type { Providers } from "../use-providers";
 
-export function Management({ room, state }: { room: Room; state: State }) {
+export function Management({
+  room,
+  state,
+  providers,
+}: {
+  room: Room;
+  state: State;
+  providers: Providers;
+}) {
   const { busy, run, leave } = room;
   const { session } = state;
   const host = state.me.is_host;
@@ -103,6 +113,7 @@ export function Management({ room, state }: { room: Room; state: State }) {
           ))}
         </ol>
       </section>
+      <FiltersSummary filters={session.filters} providers={providers} />
       <div className="actions">
         <button disabled={busy} onClick={leave}>
           <LogOut aria-hidden="true" />
