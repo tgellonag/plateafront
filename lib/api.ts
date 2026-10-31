@@ -6,7 +6,6 @@ export type Filters = {
   provider_ids: number[];
   min_year: number;
   max_runtime: number;
-  movie_count: number;
 };
 export type Movie = {
   id: number;
