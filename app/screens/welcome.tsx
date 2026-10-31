@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { LogIn, Plus } from "lucide-react";
+import { LoaderCircle, LogIn, Plus } from "lucide-react";
 import type { Room } from "../use-room";
 
 export function Welcome({ room }: { room: Room }) {
@@ -24,6 +24,14 @@ export function Welcome({ room }: { room: Room }) {
         }}
       >
         <h1>Crear o unirse</h1>
+        <p role="status" className="connection-status">
+          {busy && (
+            <>
+              <LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" />
+              Conectando…
+            </>
+          )}
+        </p>
         <label>
           Tu nombre
           <input
@@ -42,7 +50,7 @@ export function Welcome({ room }: { room: Room }) {
           onClick={() => void enter(true, { name, code, isTest })}
         >
           <Plus aria-hidden="true" />
-          {busy ? "Conectando…" : "Crear sesión"}
+          Crear sesión
         </button>
         <div className="divider">o</div>
         <label>
