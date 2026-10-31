@@ -12,6 +12,7 @@ import {
   Copy,
   Film,
   Heart,
+  LoaderCircle,
   LogIn,
   LogOut,
   Play,
@@ -641,6 +642,14 @@ export function Platea() {
             }}
           >
             <h1>Crear o unirse</h1>
+            <p role="status" className="connection-status">
+              {busy && (
+                <>
+                  <LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" />
+                  Conectando…
+                </>
+              )}
+            </p>
             <label>
               Tu nombre
               <input
@@ -659,7 +668,7 @@ export function Platea() {
               onClick={() => void enter(true)}
             >
               <Plus aria-hidden="true" />
-              {busy ? "Conectando…" : "Crear sesión"}
+              Crear sesión
             </button>
             <div className="divider">o</div>
             <label>
