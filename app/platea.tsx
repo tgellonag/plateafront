@@ -91,7 +91,7 @@ export function Platea({ children }: { children?: ReactNode }) {
               </div>
             </div>
             {management ? (
-              <Management room={room} state={state} />
+              <Management room={room} state={state} providers={providers} />
             ) : session.status === "open" ? (
               <Lobby room={room} state={state} providers={providers} />
             ) : session.status === "voting" ? (

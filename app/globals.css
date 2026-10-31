@@ -619,6 +619,9 @@ summary {
 dl {
   margin: 0;
 }
+.filters-summary dd {
+  font-size: 0.875rem;
+}
 dl > div {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
