@@ -51,7 +51,7 @@ export function FiltersSummary({ filters, providers }: { filters: Filters; provi
           </dd>
         </div>
         <div>
-          <dt>Streaming en Chile</dt>
+          <dt>Streaming</dt>
           <dd>
             {filters.provider_ids.map((id) => providers.names[id] ?? `Servicio ${id}`).join(", ") ||
               "Todos los servicios"}
@@ -64,10 +64,6 @@ export function FiltersSummary({ filters, providers }: { filters: Filters; provi
         <div>
           <dt>Duración máxima</dt>
           <dd>{filters.max_runtime} min</dd>
-        </div>
-        <div>
-          <dt>Películas por ronda</dt>
-          <dd>{filters.movie_count}</dd>
         </div>
       </dl>
     </details>
@@ -84,10 +80,9 @@ export function FiltersForm({
   saved: Filters;
 }) {
   const [filters, setDraft] = useState<
-      Omit<Filters, "min_year" | "max_runtime" | "movie_count"> & {
+      Omit<Filters, "min_year" | "max_runtime"> & {
         min_year: number | "";
         max_runtime: number | "";
-        movie_count: number | "";
       }
     >(saved),
     [edited, setEdited] = useState(false),
@@ -102,10 +97,7 @@ export function FiltersForm({
     +filters.min_year <= new Date().getFullYear() + 2 &&
     Number.isInteger(filters.max_runtime) &&
     +filters.max_runtime >= 1 &&
-    +filters.max_runtime <= 600 &&
-    Number.isInteger(filters.movie_count) &&
-    +filters.movie_count >= 5 &&
-    +filters.movie_count <= 20;
+    +filters.max_runtime <= 600;
   function setFilters(next: typeof filters) {
     setDraft(next);
     setEdited(true);
@@ -133,14 +125,16 @@ export function FiltersForm({
     };
   }, [access, edited, filters, retry, setFiltersPending, valid]);
   useEffect(() => () => setFiltersPending(false), [setFiltersPending]);
-  const options = [
+  const providerOptions = [
     ...providers.list,
     ...filters.provider_ids
       .filter((id) => !providers.names[id])
       .map((id) => ({ provider_id: id, provider_name: `Servicio ${id}` })),
-  ].filter((p) =>
-    p.provider_name.toLocaleLowerCase("es").includes(search.trim().toLocaleLowerCase("es")),
-  );
+  ];
+  const query = search.trim().toLocaleLowerCase("es");
+  const options = query
+    ? providerOptions.filter((p) => p.provider_name.toLocaleLowerCase("es").includes(query))
+    : providerOptions.slice(0, 10);
   return (
     <details className="panel settings">
       <summary>
@@ -172,7 +166,7 @@ export function FiltersForm({
           </div>
         </fieldset>
         <fieldset>
-          <legend>Streaming en Chile</legend>
+          <legend>Streaming</legend>
           {providers.loading && <p role="status">Cargando servicios…</p>}
           {providers.error && (
             <div className="provider-error">
@@ -188,7 +182,7 @@ export function FiltersForm({
             </div>
           )}
           {providers.stale && <small>Lista guardada; puede haber cambiado.</small>}
-          {providers.list.length > 12 && (
+          {providerOptions.length > 10 && (
             <label>
               Buscar servicio
               <input
@@ -218,10 +212,10 @@ export function FiltersForm({
               </label>
             ))}
           </div>
+          {!query && providerOptions.length > 10 && <small>Busca para más servicios.</small>}
           {!providers.loading && !providers.error && options.length === 0 && (
             <p>No hay servicios que coincidan.</p>
           )}
-          <small>El filtro de películas considera solo suscripciones.</small>
         </fieldset>
         <label>
           Año desde
@@ -243,17 +237,6 @@ export function FiltersForm({
             max={600}
             value={filters.max_runtime}
             onChange={(e) => setFilters({ ...filters, max_runtime: numberValue(e) })}
-          />
-        </label>
-        <label>
-          Películas por ronda
-          <input
-            type="number"
-            required
-            min={5}
-            max={20}
-            value={filters.movie_count}
-            onChange={(e) => setFilters({ ...filters, movie_count: numberValue(e) })}
           />
         </label>
         {error ? (
