@@ -2,28 +2,65 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { LoaderCircle, LogIn, Plus } from "lucide-react";
+import { ArrowRight, LoaderCircle, LogIn, Plus } from "lucide-react";
 import type { Room } from "../use-room";
 
 export function Welcome({ room }: { room: Room }) {
   const pathname = usePathname();
   const [name, setName] = useState(""),
+    [nameConfirmed, setNameConfirmed] = useState(false),
     [code, setCode] = useState(() => {
       const [, page, value] = pathname.split("/");
       return page === "join" ? decodeURIComponent(value ?? "").toUpperCase() : "";
     }),
     [isTest, setIsTest] = useState(false);
   const { busy, enter } = room;
+  if (!nameConfirmed) {
+    return (
+      <section className="welcome">
+        <form
+          key="name"
+          className="panel"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name.trim() || busy) return;
+            setName(name.trim());
+            setNameConfirmed(true);
+          }}
+        >
+          <h1>¿Cómo te llamas?</h1>
+          <label>
+            Tu nombre
+            <input
+              autoFocus
+              required
+              maxLength={30}
+              autoComplete="nickname"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nombre"
+            />
+          </label>
+          <button className="primary" disabled={busy || !name.trim()}>
+            Continuar
+            <ArrowRight aria-hidden="true" />
+          </button>
+        </form>
+      </section>
+    );
+  }
   return (
     <section className="welcome">
       <form
+        key="session"
         className="panel"
         onSubmit={(e) => {
           e.preventDefault();
+          if (busy || code.length !== 6) return;
           void enter(false, { name, code, isTest });
         }}
       >
-        <h1>Crear o unirse</h1>
+        <h1>Hola, {name}</h1>
         <p role="status" className="connection-status">
           {busy && (
             <>
@@ -33,29 +70,10 @@ export function Welcome({ room }: { room: Room }) {
           )}
         </p>
         <label>
-          Tu nombre
-          <input
-            required
-            maxLength={30}
-            autoComplete="nickname"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre"
-          />
-        </label>
-        <button
-          type="button"
-          className="primary"
-          disabled={busy || !name.trim()}
-          onClick={() => void enter(true, { name, code, isTest })}
-        >
-          <Plus aria-hidden="true" />
-          Crear sesión
-        </button>
-        <div className="divider">o</div>
-        <label>
           Código de invitación
           <input
+            autoFocus
+            required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             maxLength={6}
@@ -68,9 +86,18 @@ export function Welcome({ room }: { room: Room }) {
             className="code-input"
           />
         </label>
-        <button disabled={busy || code.length !== 6 || !name.trim()}>
+        <button className="primary" disabled={busy || code.length !== 6}>
           <LogIn aria-hidden="true" />
           Unirse
+        </button>
+        <div className="divider">o</div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void enter(true, { name, code, isTest })}
+        >
+          <Plus aria-hidden="true" />
+          Crear sesión
         </button>
         <details className="session-options">
           <summary>Opciones</summary>
