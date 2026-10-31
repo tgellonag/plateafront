@@ -30,7 +30,7 @@ export function Welcome({ room }: { room: Room }) {
         >
           <h1>¿Cómo te llamas?</h1>
           <label>
-            Tu nombre
+            <span className="sr-only">Tu nombre</span>
             <input
               autoFocus
               required
