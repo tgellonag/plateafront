@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { usePathname } from "next/navigation";
 import { VoteQueue, shouldRefreshRoom, type VoteReceipt } from "./vote-queue";
 import { API_URL, RequestError, request, type Access, type State } from "@/lib/api";
@@ -14,6 +21,7 @@ async function resumeAccess(saved: Access) {
 }
 
 export type Room = ReturnType<typeof useRoom>;
+export const RoomContext = createContext<Room | null>(null);
 
 // Session lifecycle: boot/resume, live sync, actions and leaving. Screens only render.
 export function useRoom() {
@@ -301,8 +309,10 @@ export function useRoom() {
         create ? { name, is_test: isTest } : { name, code, tokens: [...tokens].slice(-64) },
       );
       await activate(next);
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     } finally {
       setBusy(false);
     }

@@ -1,4 +1,9 @@
 import { Platea } from "@/app/platea";
+import { WelcomeName } from "@/app/screens/welcome-name";
 export default function Join() {
-  return <Platea />;
+  return (
+    <Platea>
+      <WelcomeName />
+    </Platea>
+  );
 }
