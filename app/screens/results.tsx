@@ -24,14 +24,12 @@ export function Results({ room, state }: { room: Room; state: State }) {
   const canContinue = session.status === "voting" && !finished;
   return (
     <>
-      {session.status === "voting" && finished && (
-        <section className="panel ranking-status">
-          <p>Ya votaste todas las películas disponibles.</p>
-        </section>
-      )}
       <RankingList room={room} state={state} />
-      {(canContinue || canAddMovies || canClose) && (
+      {session.status === "voting" && (
         <div className="action-bar">
+          {finished && (
+            <p className="ranking-status">Ya votaste todas las películas disponibles.</p>
+          )}
           {canContinue && (
             <button
               className="continue-voting"
