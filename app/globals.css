@@ -344,10 +344,6 @@ header {
 .room-heading h1 {
   margin-bottom: 0;
 }
-.round-label {
-  margin: 0 0 4px;
-  font-size: 0.75rem;
-}
 .room-status {
   display: flex;
   align-items: center;

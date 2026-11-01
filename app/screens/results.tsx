@@ -52,12 +52,12 @@ export function Results({ room, state }: { room: Room; state: State }) {
               className="primary"
               disabled={busy}
               onClick={() => {
-                if (window.confirm("¿Cerrar la votación? Ya no se podrán recibir más votos."))
+                if (window.confirm("¿Terminar la votación? Ya no se podrán recibir más votos."))
                   run("close");
               }}
             >
               <Square aria-hidden="true" />
-              Cerrar votación
+              Terminar votación
             </button>
           )}
         </div>
@@ -139,14 +139,14 @@ export function OptionsMenu({
             <button
               disabled={busy}
               onClick={() => {
-                if (window.confirm("¿Cerrar la votación? Ya no se podrán recibir más votos.")) {
+                if (window.confirm("¿Terminar la votación? Ya no se podrán recibir más votos.")) {
                   setOpen(false);
                   run("close");
                 }
               }}
             >
               <Square aria-hidden="true" />
-              Cerrar votación
+              Terminar votación
             </button>
           )}
           <button
