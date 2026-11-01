@@ -184,8 +184,11 @@ small {
 .ranking-status {
   padding-bottom: 4px;
 }
-.ranking-status > button {
-  width: 100%;
+.app-shell:has(.continue-voting):has(.action-bar > button:not(.continue-voting)) {
+  padding-bottom: 152px;
+}
+.action-bar > .continue-voting {
+  grid-column: 1 / -1;
 }
 .action-bar {
   position: fixed;
@@ -194,7 +197,7 @@ small {
   bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   max-width: 480px;
   margin: 0 auto;

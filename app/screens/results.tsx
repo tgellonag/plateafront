@@ -23,23 +23,27 @@ export function Results({ room, state }: { room: Room; state: State }) {
   const { canAddMovies, canClose } = hostActions(state);
   return (
     <>
-      <section className="panel ranking-status">
-        {finished ? (
+      {finished && (
+        <section className="panel ranking-status">
           <p>Ya votaste todas las películas disponibles.</p>
-        ) : (
-          <button onClick={() => history.pushState({}, "", `/room/${session.id}`)}>
-            <Play aria-hidden="true" />
-            Continuar votando
-          </button>
-        )}
-      </section>
+        </section>
+      )}
       <RankingList room={room} state={state} />
-      {(canAddMovies || canClose) && (
+      {(!finished || canAddMovies || canClose) && (
         <div className="action-bar">
+          {!finished && (
+            <button
+              className="continue-voting"
+              onClick={() => history.pushState({}, "", `/room/${session.id}`)}
+            >
+              <Play aria-hidden="true" />
+              Continuar votando
+            </button>
+          )}
           {canAddMovies && (
             <button disabled={busy} onClick={() => run("next")}>
               <Play aria-hidden="true" />
-              Agregar ronda de peliculas
+              Agregar peliculas
             </button>
           )}
           {canClose && (
@@ -127,7 +131,7 @@ export function OptionsMenu({
               }}
             >
               <Play aria-hidden="true" />
-              Agregar ronda de peliculas
+              Agregar peliculas
             </button>
           )}
           {canClose && (
