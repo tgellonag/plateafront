@@ -181,34 +181,11 @@ small {
 .app-shell:has(.action-bar) {
   padding-bottom: 96px;
 }
-.progress-card {
+.ranking-status {
   padding-bottom: 4px;
 }
-.progress-label {
-  margin: 0 0 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-.progress-bar {
-  height: 6px;
-  border-radius: 4px;
-  background: var(--line);
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  background: var(--accent);
-  transition: width 200ms ease-out;
-}
-.match-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0 0;
-  color: var(--accent);
-  font-size: 0.875rem;
-  font-weight: 600;
+.ranking-status > button {
+  width: 100%;
 }
 .action-bar {
   position: fixed;
@@ -617,12 +594,6 @@ legend {
   color: var(--muted);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
-}
-.ranking-position .match-heart {
-  width: 16px;
-  height: 16px;
-  color: var(--accent);
-  fill: currentColor;
 }
 .ranking-details {
   display: flex;

@@ -64,7 +64,7 @@ export function Platea({ children }: { children?: ReactNode }) {
                   {management
                     ? "Sesión"
                     : results
-                      ? "Resultados"
+                      ? "Ranking"
                       : session.status === "open"
                         ? "Sala"
                         : "Votación"}

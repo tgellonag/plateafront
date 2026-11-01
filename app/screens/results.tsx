@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, LogOut, MoreHorizontal, Play, Square, Users } from "lucide-react";
+import { LogOut, MoreHorizontal, Play, Square, Users } from "lucide-react";
 import type { State } from "@/lib/api";
 import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
@@ -11,21 +11,19 @@ import { Sheet } from "./sheet";
 
 function hostActions(state: State) {
   const { session } = state;
-  const matches = state.movies.filter((m) => m.match);
   return {
     canAddMovies: state.me.is_host && session.status === "voting",
     canClose: state.me.is_host && session.status === "voting",
-    matches,
   };
 }
 
 export function Results({ room, state }: { room: Room; state: State }) {
   const { busy, run, finished } = room;
   const { session } = state;
-  const { canAddMovies, canClose, matches } = hostActions(state);
+  const { canAddMovies, canClose } = hostActions(state);
   return (
     <>
-      <section className="panel progress-card">
+      <section className="panel ranking-status">
         {finished ? (
           <p>Ya votaste todas las películas disponibles.</p>
         ) : (
@@ -33,12 +31,6 @@ export function Results({ room, state }: { room: Room; state: State }) {
             <Play aria-hidden="true" />
             Continuar votando
           </button>
-        )}
-        {matches.length > 0 && (
-          <p className="match-banner">
-            <Heart aria-hidden="true" />
-            ¡Hay match! {matches[0].title}
-          </p>
         )}
       </section>
       <RankingList room={room} state={state} />
