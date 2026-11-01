@@ -13,8 +13,18 @@ import { Results, OptionsMenu } from "./screens/results";
 export function Platea({ children }: { children?: ReactNode }) {
   const room = useRoom();
   const providers = useProviders();
-  const { access, state, voteQueue, error, notice, busy, booting, recentAccess, management, results } =
-    room;
+  const {
+    access,
+    state,
+    voteQueue,
+    error,
+    notice,
+    busy,
+    booting,
+    recentAccess,
+    management,
+    results,
+  } = room;
   const session = state?.session;
   return (
     <RoomContext value={room}>

@@ -14,7 +14,10 @@ function hostActions(room: Room, state: State) {
   const matches = state.movies.filter((m) => m.match);
   return {
     canStartSecondRound:
-      state.me.is_host && session.status === "voting" && session.round === 1 && matches.length === 0,
+      state.me.is_host &&
+      session.status === "voting" &&
+      session.round === 1 &&
+      matches.length === 0,
     canClose: state.me.is_host && session.status === "voting",
     matches,
   };
@@ -34,7 +37,10 @@ export function Results({ room, state }: { room: Room; state: State }) {
           {done} de {total} terminaron
         </p>
         <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+          <div
+            className="progress-fill"
+            style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+          />
         </div>
         {matches.length > 0 && (
           <p className="match-banner">
