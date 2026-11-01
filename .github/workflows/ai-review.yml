@@ -62,8 +62,8 @@ jobs:
         uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          # El plan gratis tiene muy poca cuota en pro: el CLI se queda reintentando.
-          gemini_model: flash
+          # Plan gratis: pro casi sin cuota y flash con 20 requests diarios, flash-lite rinde más.
+          gemini_model: flash-lite
           # Solo herramientas de lectura: el diff no puede llevar al modelo a escribir ni ejecutar.
           settings: |
             {"tools": {"core": ["read_file", "read_many_files", "glob", "grep_search", "list_directory"]}}
@@ -71,9 +71,10 @@ jobs:
             Eres revisor de código de Platea, una app para que un grupo vote qué película ver.
             Responde en español de Chile, con tuteo, sin guiones largos ni punto y coma.
 
-            1. Lee README.md y, si existen, AGENTS.md o CLAUDE.md para entender el proyecto.
-            2. El diff del PR está en pr.diff. Revisa SOLO lo que cambió, leyendo el código
-               alrededor cuando lo necesites.
+            1. Contexto del proyecto: @README.md
+            2. Diff del PR: @pr.diff
+               Revisa SOLO lo que cambió. Lee otros archivos solo si es indispensable, porque
+               cada lectura gasta cuota.
             3. Busca:
                - Bugs de lógica, condiciones de carrera y manejo de errores que pierda datos.
                - Seguridad (OWASP Top 10): inyección, validación de entrada, secretos, datos
