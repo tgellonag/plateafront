@@ -239,14 +239,17 @@ export function useRoom() {
     }
     connect();
     const focus = () => {
-      if (version === generation.current && !leaving.current) void refresh();
+      if (version === generation.current && !leaving.current && !document.hidden) void refresh();
     };
+    // iOS suspends the socket in background tabs and does not always fire focus on return.
     window.addEventListener("focus", focus);
+    document.addEventListener("visibilitychange", focus);
     return () => {
       stopped = true;
       clearTimeout(timer);
       ws?.close();
       window.removeEventListener("focus", focus);
+      document.removeEventListener("visibilitychange", focus);
     };
   }, [access, refresh, invalidateAccess]);
   const act = useCallback(
