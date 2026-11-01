@@ -21,7 +21,7 @@ export function shouldRefreshRoom(message: string, management: boolean) {
   }
 }
 
-// One finite round queue, not an offline sync engine. Only own votes are overlaid on the deck.
+// A cumulative session queue. Only own votes are overlaid on the deck.
 export class VoteQueue {
   pending: PendingVote[] = [];
   confirmed = new Map<number, Vote>();
@@ -54,13 +54,13 @@ export class VoteQueue {
       const saved: unknown = JSON.parse(this.storage().getItem(this.key) ?? "[]");
       if (
         !Array.isArray(saved) ||
-        saved.length > 40 ||
         saved.some(
           (v) =>
             !v ||
             v.participant_id !== this.room.me.id ||
             !Number.isInteger(v.movie_id) ||
-            ![1, 2].includes(v.round) ||
+            !Number.isSafeInteger(v.round) ||
+            v.round < 1 ||
             typeof v.liked !== "boolean" ||
             (v.error !== undefined && typeof v.error !== "string"),
         )
@@ -111,7 +111,6 @@ export class VoteQueue {
     return (
       !this.revoked &&
       this.room.session.status === "voting" &&
-      this.room.session.round === vote.round &&
       this.room.movies.some((m) => m.id === vote.movie_id && m.round === vote.round)
     );
   }
@@ -122,7 +121,7 @@ export class VoteQueue {
   enqueue(movieID: number, liked: boolean) {
     if (this.stopped || this.hasVoted(movieID)) return false;
     const vote: Vote = {
-      round: this.room.session.round,
+      round: this.room.movies.find((m) => m.id === movieID)?.round ?? 0,
       participant_id: this.room.me.id,
       movie_id: movieID,
       liked,

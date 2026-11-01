@@ -12,9 +12,7 @@ export function remainingMovies(state: State, voteQueue: VoteQueue | null): Movi
   const ownVotes = new Set(
     state.votes.filter((v) => v.participant_id === state.me.id).map((v) => v.movie_id),
   );
-  return state.movies
-    .filter((m) => m.round === state.session.round)
-    .filter((m) => !ownVotes.has(m.id) && !voteQueue?.hasVoted(m.id));
+  return state.movies.filter((m) => !ownVotes.has(m.id) && !voteQueue?.hasVoted(m.id));
 }
 
 export function Voting({

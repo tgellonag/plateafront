@@ -16,19 +16,11 @@ export function RankingList({ room, state }: { room: Room; state: State }) {
   const movie = state.movies.find((m) => m.id === selected);
   return (
     <section className="panel">
-      <h2>Ranking</h2>
       <ol id="movie-ranking" className="ranking">
         {(expanded ? state.movies : state.movies.slice(0, 5)).map((m) => (
           <li key={m.id} className={m.match ? "matched" : ""}>
             <button className="ranking-row" onClick={() => setSelected(m.id)}>
-              <span className="ranking-position">
-                {m.match && (
-                  <>
-                    <Heart className="match-heart" aria-hidden="true" />
-                    <span className="sr-only">Match</span>
-                  </>
-                )}
-              </span>
+              <span className="ranking-position" />
               <Poster movie={m} thumbnail />
               <div className="ranking-details">
                 <strong className="ranking-title">{m.title}</strong>

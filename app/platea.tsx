@@ -7,24 +7,12 @@ import { useProviders } from "./use-providers";
 import { WelcomeName } from "./screens/welcome-name";
 import { Lobby } from "./screens/lobby";
 import { Voting } from "./screens/voting";
-import { Management } from "./screens/management";
 import { Results, OptionsMenu } from "./screens/results";
 
 export function Platea({ children }: { children?: ReactNode }) {
   const room = useRoom();
   const providers = useProviders();
-  const {
-    access,
-    state,
-    voteQueue,
-    error,
-    notice,
-    busy,
-    booting,
-    recentAccess,
-    management,
-    results,
-  } = room;
+  const { access, state, voteQueue, error, notice, busy, booting, recentAccess, results } = room;
   const session = state?.session;
   return (
     <RoomContext value={room}>
@@ -60,15 +48,7 @@ export function Platea({ children }: { children?: ReactNode }) {
                 {session.status === "voting" && (
                   <p className="round-label">Ronda {session.round}</p>
                 )}
-                <h1>
-                  {management
-                    ? "Sesión"
-                    : results
-                      ? "Resultados"
-                      : session.status === "open"
-                        ? "Sala"
-                        : "Votación"}
-                </h1>
+                <h1>{results ? "Ranking" : session.status === "open" ? "Sala" : "Votación"}</h1>
               </div>
               <div className="room-status">
                 {!!voteQueue?.errors.length && (
@@ -88,21 +68,17 @@ export function Platea({ children }: { children?: ReactNode }) {
                     <LogOut aria-hidden="true" />
                     Salir
                   </button>
-                ) : session.status === "voting" ? (
+                ) : session.status === "voting" || session.status === "closed" ? (
                   <OptionsMenu room={room} state={state} providers={providers} />
                 ) : null}
               </div>
             </div>
-            {management ? (
-              <Management room={room} state={state} providers={providers} />
-            ) : session.status === "open" ? (
+            {session.status === "open" ? (
               <Lobby room={room} state={state} providers={providers} />
+            ) : results ? (
+              <Results room={room} state={state} />
             ) : session.status === "voting" ? (
-              results ? (
-                <Results room={room} state={state} />
-              ) : (
-                <Voting room={room} state={state} providers={providers} />
-              )
+              <Voting room={room} state={state} providers={providers} />
             ) : null}
           </>
         ) : null}

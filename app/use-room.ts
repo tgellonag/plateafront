@@ -40,23 +40,20 @@ export function useRoom() {
   const management = state?.session.status === "closed";
   const finished =
     !!state && state.session.status === "voting" && remainingMovies(state, voteQueue).length === 0;
-  const results = state?.session.status === "voting" && (finished || managementRoute);
+  const results =
+    management || (state?.session.status === "voting" && (finished || managementRoute));
   useSyncExternalStore(
     voteQueue?.subscribe ?? noSubscription,
     voteQueue?.getSnapshot ?? zero,
     zero,
   );
-  const prevRound = useRef(0);
   useEffect(() => {
-    const round = state?.session.round ?? 0;
-    if (
-      managementRoute &&
-      state &&
-      (round === 0 || (round > prevRound.current && state.session.status === "voting"))
-    )
+    // Make the results route sticky before another batch can extend the deck.
+    if (state?.session.status === "voting" && finished && !managementRoute)
+      history.replaceState({}, "", `/room/${state.session.id}/manage`);
+    else if (managementRoute && state?.session.round === 0)
       history.replaceState({}, "", `/room/${state.session.id}`);
-    prevRound.current = round;
-  }, [managementRoute, state]);
+  }, [managementRoute, state, finished]);
   const refreshing = useRef<Promise<void> | null>(null),
     generation = useRef(0),
     leaving = useRef(false),
