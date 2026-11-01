@@ -44,12 +44,7 @@ export function Platea({ children }: { children?: ReactNode }) {
         ) : state && session ? (
           <>
             <div className="room-heading">
-              <div>
-                {session.status === "voting" && (
-                  <p className="round-label">Ronda {session.round}</p>
-                )}
-                <h1>{results ? "Ranking" : session.status === "open" ? "Sala" : "Votación"}</h1>
-              </div>
+              <h1>{results ? "Ranking" : session.status === "open" ? "Sala" : "Votación"}</h1>
               <div className="room-status">
                 {!!voteQueue?.errors.length && (
                   <button

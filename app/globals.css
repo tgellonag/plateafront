@@ -182,12 +182,17 @@ small {
   padding-bottom: 96px;
 }
 .ranking-status {
-  padding-bottom: 4px;
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
 }
-.app-shell:has(.continue-voting):has(.action-bar > button:not(.continue-voting)) {
+.app-shell:has(.action-bar > :is(.continue-voting, .ranking-status)):has(
+    .action-bar > button:not(.continue-voting)
+  ) {
   padding-bottom: 152px;
 }
-.action-bar > .continue-voting {
+.action-bar > :is(.continue-voting, .ranking-status) {
   grid-column: 1 / -1;
 }
 .action-bar {
@@ -343,10 +348,6 @@ header {
 }
 .room-heading h1 {
   margin-bottom: 0;
-}
-.round-label {
-  margin: 0 0 4px;
-  font-size: 0.75rem;
 }
 .room-status {
   display: flex;

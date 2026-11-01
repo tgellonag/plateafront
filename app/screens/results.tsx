@@ -24,14 +24,12 @@ export function Results({ room, state }: { room: Room; state: State }) {
   const canContinue = session.status === "voting" && !finished;
   return (
     <>
-      {session.status === "voting" && finished && (
-        <section className="panel ranking-status">
-          <p>Ya votaste todas las películas disponibles.</p>
-        </section>
-      )}
       <RankingList room={room} state={state} />
-      {(canContinue || canAddMovies || canClose) && (
+      {session.status === "voting" && (
         <div className="action-bar">
+          {finished && (
+            <p className="ranking-status">Ya votaste todas las películas disponibles.</p>
+          )}
           {canContinue && (
             <button
               className="continue-voting"
@@ -52,12 +50,12 @@ export function Results({ room, state }: { room: Room; state: State }) {
               className="primary"
               disabled={busy}
               onClick={() => {
-                if (window.confirm("¿Cerrar la votación? Ya no se podrán recibir más votos."))
+                if (window.confirm("¿Terminar la votación? Ya no se podrán recibir más votos."))
                   run("close");
               }}
             >
               <Square aria-hidden="true" />
-              Cerrar votación
+              Terminar votación
             </button>
           )}
         </div>
@@ -139,14 +137,14 @@ export function OptionsMenu({
             <button
               disabled={busy}
               onClick={() => {
-                if (window.confirm("¿Cerrar la votación? Ya no se podrán recibir más votos.")) {
+                if (window.confirm("¿Terminar la votación? Ya no se podrán recibir más votos.")) {
                   setOpen(false);
                   run("close");
                 }
               }}
             >
               <Square aria-hidden="true" />
-              Cerrar votación
+              Terminar votación
             </button>
           )}
           <button
