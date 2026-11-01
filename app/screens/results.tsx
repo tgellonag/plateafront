@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, MoreHorizontal, Play, Square, Users } from "lucide-react";
+import { ListPlus, LogOut, MoreHorizontal, Play, Square, Users } from "lucide-react";
 import type { State } from "@/lib/api";
 import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
@@ -42,7 +42,7 @@ export function Results({ room, state }: { room: Room; state: State }) {
           )}
           {canAddMovies && (
             <button disabled={busy} onClick={() => run("next")}>
-              <Play aria-hidden="true" />
+              <ListPlus aria-hidden="true" />
               Agregar peliculas
             </button>
           )}
@@ -130,7 +130,7 @@ export function OptionsMenu({
                 run("next");
               }}
             >
-              <Play aria-hidden="true" />
+              <ListPlus aria-hidden="true" />
               Agregar peliculas
             </button>
           )}
