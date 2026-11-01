@@ -58,9 +58,12 @@ jobs:
         env:
           # El CLI no corre sin esto en CI. La action activa YOLO, así que la whitelist de abajo es la barrera.
           GEMINI_CLI_TRUST_WORKSPACE: "true"
+        timeout-minutes: 10
         uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          # El plan gratis tiene muy poca cuota en pro: el CLI se queda reintentando.
+          gemini_model: flash
           # Solo herramientas de lectura: el diff no puede llevar al modelo a escribir ni ejecutar.
           settings: |
             {"tools": {"core": ["read_file", "read_many_files", "glob", "grep_search", "list_directory"]}}
