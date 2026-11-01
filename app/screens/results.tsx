@@ -9,39 +9,31 @@ import { RankingList } from "./ranking";
 import { FiltersSummary } from "./filters-form";
 import { Sheet } from "./sheet";
 
-function hostActions(room: Room, state: State) {
+function hostActions(state: State) {
   const { session } = state;
   const matches = state.movies.filter((m) => m.match);
   return {
-    canStartSecondRound:
-      state.me.is_host &&
-      session.status === "voting" &&
-      session.round === 1 &&
-      matches.length === 0,
+    canAddMovies: state.me.is_host && session.status === "voting",
     canClose: state.me.is_host && session.status === "voting",
     matches,
   };
 }
 
 export function Results({ room, state }: { room: Room; state: State }) {
-  const { busy, run } = room;
+  const { busy, run, finished } = room;
   const { session } = state;
-  const roundSize = state.movies.filter((m) => m.round === session.round).length;
-  const done = state.participants.filter((p) => p.progress === roundSize).length;
-  const total = state.participants.length;
-  const { canStartSecondRound, canClose, matches } = hostActions(room, state);
+  const { canAddMovies, canClose, matches } = hostActions(state);
   return (
     <>
       <section className="panel progress-card">
-        <p className="progress-label">
-          {done} de {total} terminaron
-        </p>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${total ? (done / total) * 100 : 0}%` }}
-          />
-        </div>
+        {finished ? (
+          <p>Ya votaste todas las películas disponibles.</p>
+        ) : (
+          <button onClick={() => history.pushState({}, "", `/room/${session.id}`)}>
+            <Play aria-hidden="true" />
+            Continuar votando
+          </button>
+        )}
         {matches.length > 0 && (
           <p className="match-banner">
             <Heart aria-hidden="true" />
@@ -50,12 +42,12 @@ export function Results({ room, state }: { room: Room; state: State }) {
         )}
       </section>
       <RankingList room={room} state={state} />
-      {(canStartSecondRound || canClose) && (
+      {(canAddMovies || canClose) && (
         <div className="action-bar">
-          {canStartSecondRound && (
+          {canAddMovies && (
             <button disabled={busy} onClick={() => run("next")}>
               <Play aria-hidden="true" />
-              Segunda ronda
+              Agregar películas
             </button>
           )}
           {canClose && (
@@ -89,8 +81,7 @@ export function OptionsMenu({
   const [open, setOpen] = useState(false);
   const { busy, run, leave, results, finished } = room;
   const { session } = state;
-  const roundSize = state.movies.filter((m) => m.round === session.round).length;
-  const { canStartSecondRound, canClose } = hostActions(room, state);
+  const { canAddMovies, canClose } = hostActions(state);
   return (
     <>
       <button aria-label="Opciones" onClick={() => setOpen(true)}>
@@ -110,9 +101,6 @@ export function OptionsMenu({
                   {p.name}
                   {p.is_host ? " · anfitrión" : ""}
                 </span>
-                <small>
-                  {p.progress}/{roundSize}
-                </small>
               </li>
             ))}
           </ul>
@@ -135,10 +123,10 @@ export function OptionsMenu({
                 history.pushState({}, "", `/room/${session.id}`);
               }}
             >
-              Volver a votar
+              Continuar votando
             </button>
           )}
-          {canStartSecondRound && (
+          {canAddMovies && (
             <button
               disabled={busy}
               onClick={() => {
@@ -147,7 +135,7 @@ export function OptionsMenu({
               }}
             >
               <Play aria-hidden="true" />
-              Segunda ronda
+              Agregar películas
             </button>
           )}
           {canClose && (

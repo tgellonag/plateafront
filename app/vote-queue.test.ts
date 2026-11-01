@@ -20,6 +20,41 @@ const memoryStorage = () => {
 const saved = (vote: Vote) => Promise.resolve({ ...vote, type: "vote_saved" as const });
 
 describe("VoteQueue", () => {
+  it("restores a large queue across batches and votes using each movie's original round", async () => {
+    const storage = memoryStorage();
+    const movies = Array.from({ length: 45 }, (_, id) => ({
+      id,
+      round: Math.floor(id / 15) + 1,
+      title: String(id),
+    }));
+    storage.setItem(
+      "platea-votes-s1-p1",
+      JSON.stringify(
+        movies.slice(0, 44).map((movie) => ({
+          round: movie.round,
+          participant_id: "p1",
+          movie_id: movie.id,
+          liked: true,
+        })),
+      ),
+    );
+    const send = vi.fn(saved);
+    const state = { ...room(), session: { ...room().session, round: 4 }, movies };
+    const queue = new VoteQueue(
+      state,
+      () => storage,
+      send,
+      async () => {},
+    );
+    expect(queue.enqueue(44, false)).toBe(true);
+    queue.reconcile({ ...state, session: { ...state.session, round: 5 } });
+    await vi.waitFor(() => expect(queue.hasPending).toBe(false));
+    expect(send).toHaveBeenCalledTimes(45);
+    expect(send.mock.calls[0][0].round).toBe(1);
+    expect(send.mock.calls[44][0].round).toBe(3);
+    expect(queue.errors).toEqual([]);
+  });
+
   it("sends a vote and confirms it from the server receipt", async () => {
     const send = vi.fn(saved);
     const queue = new VoteQueue(room(), memoryStorage, send, async () => {});
