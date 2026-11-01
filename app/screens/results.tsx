@@ -47,7 +47,7 @@ export function Results({ room, state }: { room: Room; state: State }) {
           {canAddMovies && (
             <button disabled={busy} onClick={() => run("next")}>
               <Play aria-hidden="true" />
-              Agregar películas
+              Agregar ronda de peliculas
             </button>
           )}
           {canClose && (
@@ -135,7 +135,7 @@ export function OptionsMenu({
               }}
             >
               <Play aria-hidden="true" />
-              Agregar películas
+              Agregar ronda de peliculas
             </button>
           )}
           {canClose && (
