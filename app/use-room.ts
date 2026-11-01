@@ -10,6 +10,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { VoteQueue, shouldRefreshRoom, type VoteReceipt } from "./vote-queue";
+import { remainingMovies } from "./screens/voting";
 import { API_URL, RequestError, request, type Access, type State } from "@/lib/api";
 
 const noSubscription = () => () => {};
@@ -36,24 +37,33 @@ export function useRoom() {
     [filtersPending, setFiltersPending] = useState(false),
     [booting, setBooting] = useState(true),
     [recentAccess, setRecentAccess] = useState<Access | null>(null);
-  const management =
-    state?.session.status === "closed" || (managementRoute && (state?.session.round ?? 0) > 0);
+  const management = state?.session.status === "closed";
+  const finished =
+    !!state && state.session.status === "voting" && remainingMovies(state, voteQueue).length === 0;
+  const results = state?.session.status === "voting" && (finished || managementRoute);
   useSyncExternalStore(
     voteQueue?.subscribe ?? noSubscription,
     voteQueue?.getSnapshot ?? zero,
     zero,
   );
+  const prevRound = useRef(0);
   useEffect(() => {
-    if (managementRoute && state?.session.round === 0)
+    const round = state?.session.round ?? 0;
+    if (
+      managementRoute &&
+      state &&
+      (round === 0 || (round > prevRound.current && state.session.status === "voting"))
+    )
       history.replaceState({}, "", `/room/${state.session.id}`);
-  }, [managementRoute, state?.session.round, state?.session.id]);
+    prevRound.current = round;
+  }, [managementRoute, state]);
   const refreshing = useRef<Promise<void> | null>(null),
     generation = useRef(0),
     leaving = useRef(false),
     refreshPending = useRef(false),
     queueRef = useRef<VoteQueue | null>(null),
     refreshLatest = useRef<() => Promise<void>>(async () => {}),
-    managementRef = useRef(management);
+    managementRef = useRef(management || results);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       if (!queueRef.current?.hasPending) return;
@@ -187,9 +197,9 @@ export function useRoom() {
   }, [access, invalidateAccess]);
   useEffect(() => {
     refreshLatest.current = refresh;
-    managementRef.current = management;
+    managementRef.current = management || results;
     if (access) void refresh();
-  }, [access, refresh, management]);
+  }, [access, refresh, management, results]);
   useEffect(() => {
     if (!access) return;
     const version = generation.current;
@@ -394,6 +404,8 @@ export function useRoom() {
     booting,
     recentAccess,
     management,
+    finished,
+    results,
     refresh,
     run,
     enter,
