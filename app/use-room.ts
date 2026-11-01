@@ -40,7 +40,8 @@ export function useRoom() {
   const management = state?.session.status === "closed";
   const finished =
     !!state && state.session.status === "voting" && remainingMovies(state, voteQueue).length === 0;
-  const results = state?.session.status === "voting" && (finished || managementRoute);
+  const results =
+    management || (state?.session.status === "voting" && (finished || managementRoute));
   useSyncExternalStore(
     voteQueue?.subscribe ?? noSubscription,
     voteQueue?.getSnapshot ?? zero,

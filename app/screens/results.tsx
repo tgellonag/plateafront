@@ -21,17 +21,18 @@ export function Results({ room, state }: { room: Room; state: State }) {
   const { busy, run, finished } = room;
   const { session } = state;
   const { canAddMovies, canClose } = hostActions(state);
+  const canContinue = session.status === "voting" && !finished;
   return (
     <>
-      {finished && (
+      {session.status === "voting" && finished && (
         <section className="panel ranking-status">
           <p>Ya votaste todas las películas disponibles.</p>
         </section>
       )}
       <RankingList room={room} state={state} />
-      {(!finished || canAddMovies || canClose) && (
+      {(canContinue || canAddMovies || canClose) && (
         <div className="action-bar">
-          {!finished && (
+          {canContinue && (
             <button
               className="continue-voting"
               onClick={() => history.pushState({}, "", `/room/${session.id}`)}
@@ -112,7 +113,7 @@ export function OptionsMenu({
               Ver ranking
             </button>
           )}
-          {results && !finished && (
+          {session.status === "voting" && results && !finished && (
             <button
               onClick={() => {
                 setOpen(false);
