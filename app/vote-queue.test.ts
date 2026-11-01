@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { VoteQueue, type Vote } from "./vote-queue";
+import { VoteQueue, shouldRefreshRoom, type Vote } from "./vote-queue";
 
 const room = (votes: { participant_id: string; movie_id: number; liked: boolean }[] = []) => ({
   session: { id: "s1", round: 1, status: "voting" },
@@ -20,7 +20,7 @@ const memoryStorage = () => {
 const saved = (vote: Vote) => Promise.resolve({ ...vote, type: "vote_saved" as const });
 
 describe("VoteQueue", () => {
-  it("restores a large queue across batches and votes using each movie's original round", async () => {
+  it("VOTE-R3 restores a large queue across batches and votes using each movie's original round", async () => {
     const storage = memoryStorage();
     const movies = Array.from({ length: 45 }, (_, id) => ({
       id,
@@ -55,7 +55,7 @@ describe("VoteQueue", () => {
     expect(queue.errors).toEqual([]);
   });
 
-  it("sends a vote and confirms it from the server receipt", async () => {
+  it("VOTE-R4 sends a vote and confirms it from the server receipt", async () => {
     const send = vi.fn(saved);
     const queue = new VoteQueue(room(), memoryStorage, send, async () => {});
 
@@ -68,7 +68,7 @@ describe("VoteQueue", () => {
     expect(queue.errors).toEqual([]);
   });
 
-  it("keeps an unsent vote across a reload and sends it again", async () => {
+  it("VOTE-R3 keeps an unsent vote across a reload and sends it again", async () => {
     const storage = memoryStorage();
     const first = new VoteQueue(
       room(),
@@ -94,7 +94,7 @@ describe("VoteQueue", () => {
     );
   });
 
-  it("does not report a loss when a failed request was saved after all", async () => {
+  it("VOTE-R4 does not report a loss when a failed request was saved after all", async () => {
     const send = vi.fn(() =>
       Promise.reject(Object.assign(new Error("Rechazado"), { status: 400 })),
     );
@@ -109,5 +109,46 @@ describe("VoteQueue", () => {
 
     expect(queue.hasPending).toBe(false);
     expect(queue.errors).toEqual([]);
+  });
+
+  it("VOTE-R5 keeps the server's opposite vote from a receipt and warns", async () => {
+    const send = vi.fn((vote: Vote) => saved({ ...vote, liked: !vote.liked }));
+    const queue = new VoteQueue(room(), memoryStorage, send, async () => {});
+
+    queue.enqueue(10, true);
+    await vi.waitFor(() => expect(queue.hasPending).toBe(false));
+
+    expect(queue.confirmed.get(10)?.liked).toBe(false);
+    expect(queue.errors).toEqual([
+      "No se guardó tu voto por “A” (ronda 1). El servidor ya tenía el voto contrario; se conserva ese voto.",
+    ]);
+  });
+
+  it("VOTE-R5 keeps the server's opposite vote from a room snapshot and warns", () => {
+    const queue = new VoteQueue(
+      room(),
+      memoryStorage,
+      () => new Promise(() => {}),
+      async () => {},
+    );
+    queue.enqueue(11, true);
+
+    queue.reconcile(room([{ participant_id: "p1", movie_id: 11, liked: false }]));
+
+    expect(queue.hasPending).toBe(false);
+    expect(queue.confirmed.get(11)?.liked).toBe(false);
+    expect(queue.errors).toHaveLength(1);
+  });
+});
+
+describe("shouldRefreshRoom", () => {
+  it.each([
+    ["a vote outside the ranking", '{"type":"vote_changed"}', false, false],
+    ["a vote while viewing the ranking", '{"type":"vote_changed"}', true, true],
+    ["a structural change", '{"type":"changed"}', false, true],
+    ["a revoked access notice", '{"type":"revoked"}', false, true],
+    ["an unreadable message", "not json", false, true],
+  ])("RT-R2 %s", (_, message, management, refresh) => {
+    expect(shouldRefreshRoom(message, management)).toBe(refresh);
   });
 });
