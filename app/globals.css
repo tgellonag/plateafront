@@ -178,6 +178,97 @@ small {
   padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
     env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
 }
+.app-shell:has(.action-bar) {
+  padding-bottom: 96px;
+}
+.progress-card {
+  padding-bottom: 4px;
+}
+.progress-label {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.progress-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 200ms ease-out;
+}
+.match-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+}
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85svh;
+  margin: 0 auto;
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: 0;
+  top: auto;
+  transform: translateX(-50%);
+  padding: 20px 16px max(20px, env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: #19191f;
+  color: var(--ink);
+  overflow-y: auto;
+}
+.sheet::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+.sheet-center {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  width: min(86vw, 360px);
+  height: min(65svh, 480px);
+  border-radius: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 16px;
+}
+.movie-detail-meta {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.movie-detail-overview {
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+.sheet-content > :last-child {
+  margin-bottom: 0;
+}
 header {
   display: flex;
   align-items: center;
@@ -508,9 +599,9 @@ legend {
 }
 .ranking li {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
-  padding: 16px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--line);
   counter-increment: rank;
 }
@@ -520,7 +611,6 @@ legend {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding-top: 2px;
 }
 .ranking-position::before {
   content: counter(rank, decimal-leading-zero);
@@ -535,8 +625,11 @@ legend {
   fill: currentColor;
 }
 .ranking-details {
+  display: flex;
+  align-items: center;
   flex: 1;
   min-width: 0;
+  gap: 8px;
 }
 .poster.ranking-poster {
   flex: 0 0 40px;
@@ -545,11 +638,23 @@ legend {
   padding: 0;
   border-radius: 5px;
 }
-.ranking strong {
-  display: block;
+.ranking-title {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
   font-size: 0.875rem;
   font-weight: 550;
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match-tag {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgb(from var(--accent) r g b / 18%);
+  color: var(--accent);
+  font-size: 0.625rem;
+  font-weight: 600;
 }
 .ranking button {
   flex-shrink: 0;
@@ -557,18 +662,29 @@ legend {
   padding: 8px 10px;
   font-size: 0.75rem;
 }
+.ranking-row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
 .ranking-toggle {
   display: flex;
   margin-inline: auto;
 }
 .vote-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  margin-top: 6px;
-  font-size: 0.6875rem;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
 }
-.vote-counts > span,
 .chosen {
   display: inline-flex;
   align-items: center;

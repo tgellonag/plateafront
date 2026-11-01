@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, LogOut, RefreshCw, Settings2, WifiOff } from "lucide-react";
+import { LogOut, RefreshCw, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { RoomContext, useRoom } from "./use-room";
 import { useProviders } from "./use-providers";
@@ -8,11 +8,13 @@ import { WelcomeName } from "./screens/welcome-name";
 import { Lobby } from "./screens/lobby";
 import { Voting } from "./screens/voting";
 import { Management } from "./screens/management";
+import { Results, OptionsMenu } from "./screens/results";
 
 export function Platea({ children }: { children?: ReactNode }) {
   const room = useRoom();
   const providers = useProviders();
-  const { access, state, voteQueue, error, notice, busy, booting, recentAccess, management } = room;
+  const { access, state, voteQueue, error, notice, busy, booting, recentAccess, management, results } =
+    room;
   const session = state?.session;
   return (
     <RoomContext value={room}>
@@ -48,7 +50,15 @@ export function Platea({ children }: { children?: ReactNode }) {
                 {session.status === "voting" && (
                   <p className="round-label">Ronda {session.round}</p>
                 )}
-                <h1>{management ? "Sesión" : session.status === "open" ? "Sala" : "Votación"}</h1>
+                <h1>
+                  {management
+                    ? "Sesión"
+                    : results
+                      ? "Resultados"
+                      : session.status === "open"
+                        ? "Sala"
+                        : "Votación"}
+                </h1>
               </div>
               <div className="room-status">
                 {!!voteQueue?.errors.length && (
@@ -68,25 +78,8 @@ export function Platea({ children }: { children?: ReactNode }) {
                     <LogOut aria-hidden="true" />
                     Salir
                   </button>
-                ) : session.status !== "closed" ? (
-                  <button
-                    disabled={busy}
-                    onClick={() => {
-                      history.pushState(
-                        {},
-                        "",
-                        `/room/${session.id}${management ? "" : "/manage"}`,
-                      );
-                      window.scrollTo(0, 0);
-                    }}
-                  >
-                    {management ? (
-                      <ArrowLeft aria-hidden="true" />
-                    ) : (
-                      <Settings2 aria-hidden="true" />
-                    )}
-                    {management ? "Volver" : "Sesión"}
-                  </button>
+                ) : session.status === "voting" ? (
+                  <OptionsMenu room={room} state={state} providers={providers} />
                 ) : null}
               </div>
             </div>
@@ -95,7 +88,11 @@ export function Platea({ children }: { children?: ReactNode }) {
             ) : session.status === "open" ? (
               <Lobby room={room} state={state} providers={providers} />
             ) : session.status === "voting" ? (
-              <Voting room={room} state={state} providers={providers} />
+              results ? (
+                <Results room={room} state={state} />
+              ) : (
+                <Voting room={room} state={state} providers={providers} />
+              )
             ) : null}
           </>
         ) : null}
