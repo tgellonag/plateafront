@@ -703,6 +703,12 @@ summary {
 .settings[open] > summary .disclosure-icon {
   rotate: 180deg;
 }
+.sheet .filters-summary > summary .disclosure-icon {
+  rotate: 180deg;
+}
+.sheet .filters-summary[open] > summary .disclosure-icon {
+  rotate: 0deg;
+}
 .settings > summary::-webkit-details-marker {
   display: none;
 }
