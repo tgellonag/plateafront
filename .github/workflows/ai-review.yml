@@ -1,0 +1,90 @@
+# Revisión de código con IA (adaptada de UC-IIC-3143-Software-Development/full_stack_testing, con Gemini).
+# Complementa a Semgrep, Trivy y SonarQube (reglas fijas) con criterio sobre el diff.
+#
+# Activación: crea el secreto GEMINI_API_KEY (Google AI Studio) en Settings, Secrets and variables, Actions.
+# Sin el secreto (o en PR desde forks, que no reciben secretos) el job termina en verde
+# con un aviso en el resumen del run.
+name: Revisión con IA
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions: {}
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  revision:
+    name: Revisión de código (Gemini)
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write # comentario de resumen en el PR
+    env:
+      # Los secretos no se pueden usar en un if: se traduce a una variable del job
+      HAS_GEMINI_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Aviso si no hay API key
+        if: env.HAS_GEMINI_KEY != 'true'
+        run: |
+          {
+            echo "### Revisión con IA omitida"
+            echo ""
+            echo "No existe el secreto GEMINI_API_KEY (o el PR viene de un fork)."
+            echo "Para activarla, créalo en Settings, Secrets and variables, Actions."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::Revisión con IA omitida: falta el secreto GEMINI_API_KEY."
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_GEMINI_KEY == 'true'
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Obtener diff del PR
+        if: env.HAS_GEMINI_KEY == 'true'
+        run: gh pr diff "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" > pr.diff
+
+      - name: Revisar el PR con Gemini
+        id: gemini
+        if: env.HAS_GEMINI_KEY == 'true'
+        uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          # Solo herramientas de lectura: el diff no puede llevar al modelo a escribir ni ejecutar.
+          settings: |
+            {"tools": {"core": ["read_file", "read_many_files", "glob", "grep_search", "list_directory"]}}
+          prompt: |
+            Eres revisor de código de Platea, una app para que un grupo vote qué película ver.
+            Responde en español de Chile, con tuteo, sin guiones largos ni punto y coma.
+
+            1. Lee README.md y, si existen, AGENTS.md o CLAUDE.md para entender el proyecto.
+            2. El diff del PR está en pr.diff. Revisa SOLO lo que cambió, leyendo el código
+               alrededor cuando lo necesites.
+            3. Busca:
+               - Bugs de lógica, condiciones de carrera y manejo de errores que pierda datos.
+               - Seguridad (OWASP Top 10): inyección, validación de entrada, secretos, datos
+                 sensibles en logs, dependencias nuevas innecesarias.
+               - Tests: comportamiento nuevo sin test, aserciones débiles, mocks injustificados.
+               - Código muerto, duplicado o abstracciones innecesarias.
+            4. Tu respuesta final se publica tal cual como comentario del PR, en Markdown con:
+               veredicto (aprobar, aprobar con cambios menores o pedir cambios) y hallazgos
+               por categoría, cada uno con archivo:línea y el cambio propuesto.
+            No repitas lo que ya revisan las herramientas automáticas (formato, lint, tipos).
+            Si no encuentras problemas, dilo en dos líneas.
+
+      - name: Publicar revisión en el PR
+        if: env.HAS_GEMINI_KEY == 'true' && steps.gemini.outputs.summary != ''
+        env:
+          REVIEW: ${{ steps.gemini.outputs.summary }}
+        run: |
+          printf '## Revisión con IA (Gemini)\n\n%s\n' "$REVIEW" > review.md
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file review.md
+          cat review.md >> "$GITHUB_STEP_SUMMARY"
