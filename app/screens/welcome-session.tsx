@@ -57,7 +57,7 @@ export function WelcomeSession() {
         <button className="primary" disabled={busy || code.length !== 6}>
           {busy && pendingAction === "join" ? (
             <>
-              <LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" />
+              <LoaderCircle className="animate-spin" aria-hidden="true" />
               Conectando…
             </>
           ) : (
@@ -71,7 +71,7 @@ export function WelcomeSession() {
         <button type="button" disabled={busy} onClick={() => void connect(true)}>
           {busy && pendingAction === "create" ? (
             <>
-              <LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" />
+              <LoaderCircle className="animate-spin" aria-hidden="true" />
               Conectando…
             </>
           ) : (
