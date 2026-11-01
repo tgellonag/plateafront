@@ -582,6 +582,9 @@ legend {
   border-bottom: 1px solid var(--line);
   counter-increment: rank;
 }
+.ranking li:first-child {
+  border-top: 1px solid var(--line);
+}
 .ranking-position {
   display: flex;
   flex: 0 0 20px;
