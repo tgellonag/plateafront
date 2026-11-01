@@ -55,6 +55,9 @@ jobs:
       - name: Revisar el PR con Gemini
         id: gemini
         if: env.HAS_GEMINI_KEY == 'true'
+        env:
+          # El CLI no corre sin esto en CI. La action activa YOLO, así que la whitelist de abajo es la barrera.
+          GEMINI_CLI_TRUST_WORKSPACE: "true"
         uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0.1.22
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
