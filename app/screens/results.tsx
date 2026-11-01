@@ -88,7 +88,7 @@ export function OptionsMenu({
         <FiltersSummary filters={session.filters} providers={providers} />
         <section>
           <h3>
-            <Users aria-hidden="true" />
+            <Users className="participants-icon" aria-hidden="true" />
             Participantes
           </h3>
           <ul className="people">

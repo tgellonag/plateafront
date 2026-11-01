@@ -399,6 +399,9 @@ header {
 .invitation-actions > :last-child {
   grid-column: 1 / -1;
 }
+.participants-icon {
+  color: var(--accent);
+}
 .people {
   padding: 0;
   margin: 0 0 20px;

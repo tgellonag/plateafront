@@ -108,7 +108,7 @@ export function Lobby({
           <p>Esperando que el anfitrión inicie la votación.</p>
         )}
         <h3>
-          <Users aria-hidden="true" />
+          <Users className="participants-icon" aria-hidden="true" />
           Participantes ({state.participants.length}/12)
         </h3>
         <ul className="people">
