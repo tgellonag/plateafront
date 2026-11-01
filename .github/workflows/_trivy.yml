@@ -25,6 +25,52 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Trivy fs (report)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          format: json
+          output: trivy-fs-report.json
+          exit-code: "0"
+
+      - name: Summarize findings
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+
+          path = pathlib.Path("trivy-fs-report.json")
+          data = json.loads(path.read_text()) if path.exists() else {"Results": []}
+
+          order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]
+          counts = {severity: 0 for severity in order}
+          for result in data.get("Results") or []:
+              for key in ("Vulnerabilities", "Secrets", "Misconfigurations"):
+                  for finding in result.get(key) or []:
+                      severity = finding.get("Severity", "UNKNOWN")
+                      counts[severity] = counts.get(severity, 0) + 1
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## Trivy fs\n\n")
+              summary.write("| Severity | Findings |\n|---|---:|\n")
+              for severity in order:
+                  summary.write(f"| {severity} | {counts[severity]} |\n")
+          PY
+
+      - name: Publish report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-fs-report
+          path: trivy-fs-report.json
+          retention-days: 14
+          if-no-files-found: error
+
       - name: Trivy fs (warning only)
         if: inputs.warn-severity != ''
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
