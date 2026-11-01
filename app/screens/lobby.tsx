@@ -116,7 +116,7 @@ export function Lobby({
             <li key={p.id}>
               <span>
                 {p.name}
-                {p.is_host ? " · anfitrión" : ""}
+                {p.is_host ? " · Anfitrión" : ""}
               </span>
               {host && !p.is_host && p.id !== state.me.id && (
                 <button

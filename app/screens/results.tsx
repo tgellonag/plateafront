@@ -96,7 +96,7 @@ export function OptionsMenu({
               <li key={p.id}>
                 <span>
                   {p.name}
-                  {p.is_host ? " · anfitrión" : ""}
+                  {p.is_host ? " · Anfitrión" : ""}
                 </span>
               </li>
             ))}
