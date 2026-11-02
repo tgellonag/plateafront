@@ -45,3 +45,5 @@ Si se usa Docker, los cambios Go no se recargan automáticamente: ejecutar en `.
 Vercel debe tener `NEXT_PUBLIC_API_URL` con la URL HTTPS de Render **antes de compilar**. En Render configurar `CORS_ORIGIN` con el origen de Vercel. El frontend no necesita claves de TMDB, Neon ni administración. El backend mantiene las reglas y PostgreSQL es la fuente de verdad; el cliente no decide ranking ni match.
 
 La atribución TMDB y el aviso de servicio gratuito de mejor esfuerzo son permanentes. Los servicios externos requieren credenciales y el catálogo local debe estar precargado para funcionar durante una caída de TMDB. La validación real de usabilidad, carga y despliegue no se sustituye por una compilación.
+
+<!-- test: release workflow trial -->
