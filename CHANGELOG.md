@@ -7,3 +7,6 @@ proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 Las entradas de este archivo se agregan automáticamente al mergear un PR a `main` que lleve
 uno de los labels `release:major`, `release:minor` o `release:patch` (ver `VERSIONING.md`).
+
+## v0.1.0 - 2026-11-02
+- docs: trivial README change (release workflow trial) (#23)
