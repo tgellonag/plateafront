@@ -9,11 +9,11 @@ sincronizar el campo `"version"` de `package.json` y publicar el GitHub Release.
 
 Antes de mergear un PR a `main`, asignale uno de estos labels (panel "Labels" del PR en GitHub):
 
-| Label             | Cuándo usarlo                                                        |
-|--------------------|-----------------------------------------------------------------------|
-| `release:major`   | Cambio incompatible / breaking change (rompe contratos existentes)   |
-| `release:minor`   | Nueva funcionalidad compatible con lo anterior                       |
-| `release:patch`   | Fix, chore, refactor o mejora menor sin impacto de API                |
+| Label           | Cuándo usarlo                                                      |
+| --------------- | ------------------------------------------------------------------ |
+| `release:major` | Cambio incompatible / breaking change (rompe contratos existentes) |
+| `release:minor` | Nueva funcionalidad compatible con lo anterior                     |
+| `release:patch` | Fix, chore, refactor o mejora menor sin impacto de API             |
 
 **Un PR sin ninguno de estos labels no corta release.** Esto permite agrupar varios PRs chicos
 (docs, tests, CI) bajo un solo release posterior.
