@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import { Heart, Star, X } from "lucide-react";
-import type { Movie, State } from "@/lib/api";
+import { useEffect, useMemo } from "react";
+import { Heart, X } from "lucide-react";
+import { request, type Movie, type State } from "@/lib/api";
+import { TrailerCache, type Trailer } from "../trailer-cache";
 import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
 import type { VoteQueue } from "../vote-queue";
-import { Poster, posterSrc } from "./poster";
+import { posterSrc } from "./poster";
+import { MovieCard } from "./movie-card";
 
 export function remainingMovies(state: State, voteQueue: VoteQueue | null): Movie[] {
   const ownVotes = new Set(
@@ -27,6 +29,34 @@ export function Voting({
   const { busy, voteQueue } = room;
   const remaining = remainingMovies(state, voteQueue).sort((a, b) => a.position - b.position);
   const current = remaining[0];
+  const currentID = current?.id;
+  const nextID = remaining[1]?.id;
+  const sessionID = room.access?.session_id;
+  const token = room.access?.token;
+  const trailers = useMemo(
+    () =>
+      new TrailerCache(async (movieID, signal) => {
+        const result = await request<{ trailer: Trailer | null }>(
+          `/api/v1/sessions/${sessionID}/movies/${movieID}/trailer`,
+          token,
+          undefined,
+          signal,
+        );
+        return result.trailer;
+      }),
+    [sessionID, token],
+  );
+  useEffect(() => () => trailers.clear(), [trailers]);
+  useEffect(() => {
+    const ids = [currentID, nextID].filter((id): id is number => id !== undefined);
+    trailers.retain(ids);
+    if (!sessionID || !token) return;
+    // Let the poster and rapid voting settle before spending bandwidth on trailers.
+    const timer = setTimeout(() => {
+      for (const id of ids) void trailers.load(id).catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [trailers, currentID, nextID, sessionID, token]);
   const upcomingPosters = remaining
     .slice(1, 3)
     .map((m) => m.id)
@@ -38,27 +68,10 @@ export function Voting({
       poster.src = posterSrc(+id);
     });
   }, [upcomingPosters]);
-  if (!current) return null;
+  if (!current || !room.access) return null;
   return (
     <section className="voting">
-      <article className="movie-card" key={current.id}>
-        <Poster movie={current} />
-        <div className="movie-copy">
-          <h2>{current.title}</h2>
-          <p>
-            {current.year} · {current.runtime} min
-          </p>
-          <span className="rating">
-            <Star aria-hidden="true" />
-            {current.rating.toFixed(1)}
-          </span>
-          <small>
-            Streaming:{" "}
-            {current.provider_ids.map((id) => providers.names[id] ?? `Servicio ${id}`).join(", ") ||
-              "Sin información"}
-          </small>
-        </div>
-      </article>
+      <MovieCard key={current.id} movie={current} providers={providers} trailers={trailers} />
       <div className="vote-actions">
         <button disabled={busy} onClick={() => voteQueue?.enqueue(current.id, false)}>
           <X aria-hidden="true" />
