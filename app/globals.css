@@ -291,6 +291,10 @@ header {
 .panel > :last-child {
   margin-bottom: 0;
 }
+.batch-curation {
+  display: grid;
+  gap: 8px;
+}
 .lobby {
   padding: 20px 16px;
   border: 1px solid var(--line);

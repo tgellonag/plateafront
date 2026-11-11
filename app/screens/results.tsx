@@ -17,6 +17,36 @@ function hostActions(state: State) {
   };
 }
 
+const popularityReasons = {
+  no_votes: "Todavía no había votos para estimar los gustos del grupo.",
+  timeout: "Gemini no respondió a tiempo.",
+  unavailable: "Gemini no pudo entregar una selección válida.",
+};
+
+function BatchCuration({ state }: { state: State }) {
+  const { batch_curation: curation, round } = state.session;
+  if (!curation) return null;
+  const selectedCount = state.movies.filter((movie) => movie.round === round).length;
+  const selectedFromLargerPool = (curation.candidate_count ?? 0) > selectedCount;
+  return (
+    <section className="panel batch-curation" aria-live="polite">
+      <h2>{curation.method === "affinity" ? "Selección de Gemini" : "Lote por popularidad"}</h2>
+      {curation.method === "affinity" ? (
+        <>
+          <p>
+            {selectedFromLargerPool
+              ? `Gemini eligió ${selectedCount} de ${curation.candidate_count} candidatas según los votos del grupo.`
+              : "Gemini ordenó las películas disponibles según los votos del grupo."}
+          </p>
+          <p>{curation.summary}</p>
+        </>
+      ) : (
+        <p>{popularityReasons[curation.reason]}</p>
+      )}
+    </section>
+  );
+}
+
 export function Results({ room, state }: { room: Room; state: State }) {
   const { busy, run, finished } = room;
   const { session } = state;
@@ -24,7 +54,14 @@ export function Results({ room, state }: { room: Room; state: State }) {
   const canContinue = session.status === "voting" && !finished;
   return (
     <>
+      {session.status === "voting" && <BatchCuration state={state} />}
       <RankingList room={room} state={state} />
+      {session.status === "closed" && session.group_profile && (
+        <section className="panel" aria-live="polite">
+          <h2>Perfil del grupo con Gemini</h2>
+          <p>{session.group_profile}</p>
+        </section>
+      )}
       {session.status === "voting" && (
         <div className="action-bar">
           {finished && (
@@ -42,7 +79,7 @@ export function Results({ room, state }: { room: Room; state: State }) {
           {canAddMovies && (
             <button disabled={busy} onClick={() => run("next")}>
               <ListPlus aria-hidden="true" />
-              Agregar peliculas
+              Agregar películas
             </button>
           )}
           {canClose && (
@@ -130,7 +167,7 @@ export function OptionsMenu({
               }}
             >
               <ListPlus aria-hidden="true" />
-              Agregar peliculas
+              Agregar películas
             </button>
           )}
           {canClose && (
