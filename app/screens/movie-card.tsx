@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ArrowLeft, ExternalLink, RefreshCw, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Play, RefreshCw, Star } from "lucide-react";
 import type { Movie } from "@/lib/api";
 import { TrailerCache, type Trailer } from "../trailer-cache";
 import type { Providers } from "../use-providers";
@@ -77,6 +77,30 @@ export function MovieCard({
   const [expandedMovieID, setExpandedMovieID] = useState<number | null>(null);
   // A prefetched trailer must never decide which face a new movie displays.
   const back = backMovieID === movie.id;
+  // Mount the back face hidden shortly after the card appears so the YouTube player is ready on flip.
+  const [preloadMovieID, setPreloadMovieID] = useState<number | null>(null);
+  // Bumped when leaving the back face: remounts the hidden iframe so a playing trailer stops.
+  const [closedCount, setClosedCount] = useState(0);
+  // Hint label waits for trailer metadata (usually already prefetched) so it never promises a missing trailer.
+  const [hintFor, setHintFor] = useState<{ id: number; trailer: boolean } | null>(() => {
+    const trailer = trailers.peek(movie.id);
+    return trailer === undefined ? null : { id: movie.id, trailer: !!trailer };
+  });
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setPreloadMovieID(movie.id);
+      void trailers.load(movie.id).then(
+        (trailer) => !cancelled && setHintFor({ id: movie.id, trailer: !!trailer }),
+        () => !cancelled && setHintFor({ id: movie.id, trailer: false }),
+      );
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [trailers, movie.id]);
+  const hint = hintFor?.id === movie.id ? hintFor : null;
   const expanded = expandedMovieID === movie.id;
   const synopsisId = useId();
   const overview = movie.overview.trim();
@@ -84,14 +108,17 @@ export function MovieCard({
   const preview = canExpand ? `${overview.slice(0, 180).replace(/\s+\S*$/, "")}…` : overview;
   return (
     <article className={`movie-card${back ? " movie-card-back" : ""}`}>
-      {back ? (
-        <div className="movie-back">
+      {(back || preloadMovieID === movie.id) && (
+        <div className="movie-back" key={closedCount}>
           <div className="movie-back-heading">
             <button
               className="movie-back-button"
               aria-label="Volver al afiche"
               title="Volver al afiche"
-              onClick={() => setBackMovieID(null)}
+              onClick={() => {
+                setBackMovieID(null);
+                setClosedCount((value) => value + 1);
+              }}
             >
               <ArrowLeft aria-hidden="true" />
             </button>
@@ -112,7 +139,8 @@ export function MovieCard({
             )}
           </div>
         </div>
-      ) : (
+      )}
+      {!back && (
         <>
           <Poster movie={movie} />
           <button
@@ -121,6 +149,20 @@ export function MovieCard({
             aria-label={`Ver sinopsis y tráiler de ${movie.title}`}
             onClick={() => setBackMovieID(movie.id)}
           />
+          {/* Hint that the card flips; the button's aria-label already says it. */}
+          {hint && (
+            <span className="movie-back-hint" aria-hidden="true">
+              {hint.trailer ? (
+                <>
+                  <Play fill="currentColor" /> Tráiler
+                </>
+              ) : (
+                <>
+                  <FileText /> Sinopsis
+                </>
+              )}
+            </span>
+          )}
           <div className="movie-copy">
             <h2>{movie.title}</h2>
             <p>
