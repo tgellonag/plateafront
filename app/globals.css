@@ -527,6 +527,40 @@ legend {
   outline: 3px solid var(--accent);
   outline-offset: -4px;
 }
+.movie-back-hint {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  background: rgb(10 10 14 / 68%);
+  backdrop-filter: blur(6px);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: none;
+  animation: movie-back-hint-in 200ms ease-out;
+}
+.movie-back-hint .lucide {
+  width: 12px;
+  height: 12px;
+  color: var(--accent);
+}
+@keyframes movie-back-hint-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .movie-back-hint {
+    animation: none;
+  }
+}
 .movie-card-back {
   aspect-ratio: 2 / 3;
   overflow-y: auto;
@@ -535,6 +569,12 @@ legend {
   padding: 20px;
   align-self: start;
   min-width: 0;
+}
+/* Preloaded back face: invisible and out of the tab order until the card flips. */
+.movie-card:not(.movie-card-back) .movie-back {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
 }
 .movie-back-heading {
   display: flex;
