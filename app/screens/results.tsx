@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ListPlus, LogOut, MoreHorizontal, Play, Square, Users } from "lucide-react";
-import type { State } from "@/lib/api";
+import type { PopularityReason, State } from "@/lib/api";
 import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
 import { RankingList } from "./ranking";
@@ -17,9 +17,17 @@ function hostActions(state: State) {
   };
 }
 
-const popularityReasons = {
+const popularityReasons: Record<PopularityReason, string> = {
   no_votes: "Todavía no había votos para estimar los gustos del grupo.",
   timeout: "Gemini no respondió a tiempo.",
+  not_configured: "Gemini no está configurado.",
+  busy: "Gemini está ocupado con otra sala; reintenta.",
+  quota: "Se agotó la cuota de Gemini.",
+  http_error: "Gemini respondió con un error.",
+  network: "No se pudo conectar con Gemini.",
+  incomplete: "Gemini cortó su respuesta.",
+  invalid_response: "Gemini respondió en un formato inesperado.",
+  invalid_selection: "Gemini eligió películas que no estaban entre las candidatas.",
   unavailable: "Gemini no pudo entregar una selección válida.",
 };
 
@@ -41,7 +49,11 @@ function BatchCuration({ state }: { state: State }) {
           <p>{curation.summary}</p>
         </>
       ) : (
-        <p>{popularityReasons[curation.reason]}</p>
+        <>
+          {/* A backend newer than this build may send a reason we don't know yet. */}
+          <p>{popularityReasons[curation.reason] ?? popularityReasons.unavailable}</p>
+          {curation.detail && <p className="curation-detail">{curation.detail}</p>}
+        </>
       )}
     </section>
   );
