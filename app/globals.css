@@ -295,6 +295,10 @@ header {
   display: grid;
   gap: 8px;
 }
+.curation-detail {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
 .lobby {
   padding: 20px 16px;
   border: 1px solid var(--line);
