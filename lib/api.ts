@@ -31,6 +31,14 @@ export type State = {
     filters: Filters;
     round: number;
     chosen_movie_id: number | null;
+    group_profile?: string;
+    batch_curation?:
+      | { method: "affinity"; summary: string; analyzed_movies: number; candidate_count?: number }
+      | {
+          method: "popularity";
+          reason: "no_votes" | "timeout" | "unavailable";
+          candidate_count?: number;
+        };
   };
   me: Person;
   participants: Person[];
