@@ -74,9 +74,9 @@ function movie(id: number, title: string, overrides: Partial<Movie> = {}): Movie
   };
 }
 
-function buttonAttributes(html: string, label: string) {
+function buttonAttributes(html: string, label: string | RegExp) {
   return [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].find(([, , content]) =>
-    content.endsWith(label),
+    typeof label === "string" ? content.endsWith(label) : label.test(content),
   )?.[1];
 }
 
@@ -117,6 +117,11 @@ describe("Lobby", () => {
 });
 
 describe("Voting", () => {
+  const votingRoom = {
+    ...room,
+    access: { session_id: votingState.session.id, token: "room-token" },
+  };
+
   it("VOTE-R7 skips the host's confirmed and pending votes but keeps a guest's vote eligible", () => {
     const state: State = {
       ...votingState,
@@ -139,7 +144,7 @@ describe("Voting", () => {
     );
     queue.enqueue(2, false);
     const html = renderToStaticMarkup(
-      <Voting room={{ ...room, voteQueue: queue }} state={state} providers={providers} />,
+      <Voting room={{ ...votingRoom, voteQueue: queue }} state={state} providers={providers} />,
     );
     queue.dispose();
 
@@ -157,13 +162,15 @@ describe("Voting", () => {
       votes: [{ participant_id: host.id, movie_id: 1, liked: false }],
     };
 
-    expect(renderToStaticMarkup(<Voting room={room} state={state} providers={providers} />)).toBe(
-      "",
-    );
+    expect(
+      renderToStaticMarkup(<Voting room={votingRoom} state={state} providers={providers} />),
+    ).toBe("");
   });
 });
 
 describe("Results", () => {
+  const addMovies = /Agregar pel[íi]culas$/;
+
   it("RANK-R4 keeps the server's order, marks a match and initially shows only five candidates", () => {
     const state = {
       ...votingState,
@@ -193,7 +200,7 @@ describe("Results", () => {
 
     expect(html).toContain("Ya votaste todas las películas disponibles.");
     expect(buttonAttributes(html, "Continuar votando")).toBeUndefined();
-    expect(buttonAttributes(html, "Agregar peliculas")).toBeDefined();
+    expect(buttonAttributes(html, addMovies)).toBeDefined();
     expect(buttonAttributes(html, "Terminar votación")).toBeDefined();
   });
 
@@ -203,7 +210,7 @@ describe("Results", () => {
     );
 
     expect(buttonAttributes(html, "Continuar votando")).toBeDefined();
-    expect(buttonAttributes(html, "Agregar peliculas")).toBeUndefined();
+    expect(buttonAttributes(html, addMovies)).toBeUndefined();
     expect(buttonAttributes(html, "Terminar votación")).toBeUndefined();
   });
 
