@@ -74,9 +74,9 @@ function movie(id: number, title: string, overrides: Partial<Movie> = {}): Movie
   };
 }
 
-function buttonAttributes(html: string, label: string | RegExp) {
+function buttonAttributes(html: string, label: string) {
   return [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].find(([, , content]) =>
-    typeof label === "string" ? content.endsWith(label) : label.test(content),
+    content.endsWith(label),
   )?.[1];
 }
 
@@ -169,8 +169,6 @@ describe("Voting", () => {
 });
 
 describe("Results", () => {
-  const addMovies = /Agregar pel[íi]culas$/;
-
   it("RANK-R4 keeps the server's order, marks a match and initially shows only five candidates", () => {
     const state = {
       ...votingState,
@@ -200,7 +198,7 @@ describe("Results", () => {
 
     expect(html).toContain("Ya votaste todas las películas disponibles.");
     expect(buttonAttributes(html, "Continuar votando")).toBeUndefined();
-    expect(buttonAttributes(html, addMovies)).toBeDefined();
+    expect(buttonAttributes(html, "Agregar películas")).toBeDefined();
     expect(buttonAttributes(html, "Terminar votación")).toBeDefined();
   });
 
@@ -210,7 +208,7 @@ describe("Results", () => {
     );
 
     expect(buttonAttributes(html, "Continuar votando")).toBeDefined();
-    expect(buttonAttributes(html, addMovies)).toBeUndefined();
+    expect(buttonAttributes(html, "Agregar películas")).toBeUndefined();
     expect(buttonAttributes(html, "Terminar votación")).toBeUndefined();
   });
 
