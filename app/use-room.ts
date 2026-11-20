@@ -9,17 +9,14 @@ import {
   useSyncExternalStore,
 } from "react";
 import { usePathname } from "next/navigation";
-import { VoteQueue, shouldRefreshRoom, type VoteReceipt } from "./vote-queue";
+import { enterRoom, resumeAccess, savedRoomAccess, saveRoomAccess } from "./room-access";
+import { createRoomRefresher, watchRoom } from "./room-live";
+import { VoteQueue, type VoteReceipt } from "./vote-queue";
 import { remainingMovies } from "./screens/voting";
-import { API_URL, RequestError, request, type Access, type State } from "@/lib/api";
+import { RequestError, request, type Access, type State } from "@/lib/api";
 
 const noSubscription = () => () => {};
 const zero = () => 0;
-
-async function resumeAccess(saved: Access) {
-  await request(`/api/v1/sessions/${saved.session_id}/resume`, saved.token, {});
-  return saved;
-}
 
 export type Room = ReturnType<typeof useRoom>;
 export const RoomContext = createContext<Room | null>(null);
@@ -54,10 +51,9 @@ export function useRoom() {
     else if (managementRoute && state?.session.round === 0)
       history.replaceState({}, "", `/room/${state.session.id}`);
   }, [managementRoute, state, finished]);
-  const refreshing = useRef<Promise<void> | null>(null),
-    generation = useRef(0),
+  const [refresher] = useState(createRoomRefresher);
+  const generation = useRef(0),
     leaving = useRef(false),
-    refreshPending = useRef(false),
     queueRef = useRef<VoteQueue | null>(null),
     refreshLatest = useRef<() => Promise<void>>(async () => {}),
     managementRef = useRef(management || results);
@@ -75,79 +71,77 @@ export function useRoom() {
   }, []);
   const invalidateAccess = useCallback(() => {
     generation.current++;
-    refreshing.current = null;
-    refreshPending.current = false;
+    refresher.reset();
     queueRef.current?.revoke();
     setBusy(false);
     setState(null);
     setError("Tu acceso a la sala ya no está activo");
-  }, []);
-  const activate = useCallback(async (next: Access, signal?: AbortSignal) => {
-    setRecentAccess(next);
-    setNotice("");
-    try {
-      sessionStorage.setItem(`platea-${next.session_id}`, JSON.stringify(next));
-      sessionStorage.setItem("platea-recent", JSON.stringify(next));
-      sessionStorage.setItem("platea-last", next.session_id);
-    } catch {
-      setNotice(
-        "El navegador no permite guardar tu acceso. No recargues ni cierres esta pestaña durante la sesión.",
+  }, [refresher]);
+  const activate = useCallback(
+    async (next: Access, signal?: AbortSignal) => {
+      setRecentAccess(next);
+      setNotice("");
+      try {
+        saveRoomAccess(next);
+      } catch {
+        setNotice(
+          "El navegador no permite guardar tu acceso. No recargues ni cierres esta pestaña durante la sesión.",
+        );
+      }
+      const ready = await request<State>(
+        `/api/v1/sessions/${next.session_id}`,
+        next.token,
+        undefined,
+        signal,
       );
-    }
-    const ready = await request<State>(
-      `/api/v1/sessions/${next.session_id}`,
-      next.token,
-      undefined,
-      signal,
-    );
-    if (signal?.aborted) return;
-    generation.current++;
-    refreshing.current = null;
-    refreshPending.current = false;
-    leaving.current = false;
-    queueRef.current?.dispose();
-    const queue = new VoteQueue(
-      ready,
-      () => sessionStorage,
-      (vote, signal) =>
-        request<VoteReceipt>(
-          `/api/v1/sessions/${next.session_id}/vote`,
-          next.token,
-          { round: vote.round, movie_id: vote.movie_id, liked: vote.liked },
-          AbortSignal.any([signal, AbortSignal.timeout(10000)]),
-        ),
-      () => refreshLatest.current(),
-    );
-    queueRef.current = queue;
-    setVoteQueue(queue);
-    setState(ready);
-    setAccess(next);
-    const path = `/room/${next.session_id}`;
-    if (location.pathname !== path && location.pathname !== `${path}/manage`)
-      history.pushState({}, "", path);
-  }, []);
+      if (signal?.aborted) return;
+      generation.current++;
+      refresher.reset();
+      leaving.current = false;
+      queueRef.current?.dispose();
+      const queue = new VoteQueue(
+        ready,
+        () => sessionStorage,
+        (vote, signal) =>
+          request<VoteReceipt>(
+            `/api/v1/sessions/${next.session_id}/vote`,
+            next.token,
+            { round: vote.round, movie_id: vote.movie_id, liked: vote.liked },
+            AbortSignal.any([signal, AbortSignal.timeout(10000)]),
+          ),
+        () => refreshLatest.current(),
+      );
+      queueRef.current = queue;
+      setVoteQueue(queue);
+      setState(ready);
+      setAccess(next);
+      const path = `/room/${next.session_id}`;
+      if (location.pathname !== path && location.pathname !== `${path}/manage`)
+        history.pushState({}, "", path);
+    },
+    [refresher],
+  );
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
     queueMicrotask(async () => {
       if (cancelled) return;
-      const parts = location.pathname.split("/");
+      const pathname = location.pathname;
       try {
         const recent = sessionStorage.getItem("platea-recent");
         if (recent) setRecentAccess(JSON.parse(recent));
       } catch {
         /* El acceso guardado es opcional. */
       }
-      if (parts[1] === "join") {
+      if (pathname.split("/")[1] === "join") {
         setBooting(false);
         return;
       }
       try {
-        const id = parts[1] === "room" ? parts[2] : sessionStorage.getItem("platea-last");
-        const saved = id && sessionStorage.getItem(`platea-${id}`);
+        const saved = savedRoomAccess(pathname);
         if (saved) {
           setBusy(true);
-          const restored = await resumeAccess(JSON.parse(saved));
+          const restored = await resumeAccess(saved);
           if (!cancelled) await activate(restored, controller.signal);
         }
       } catch (e) {
@@ -166,32 +160,22 @@ export function useRoom() {
   }, [activate]);
   const refresh = useCallback((): Promise<void> => {
     if (!access || leaving.current) return Promise.resolve();
-    if (refreshing.current) {
-      refreshPending.current = true;
-      return refreshing.current;
-    }
     const version = generation.current;
-    const task = (async () => {
-      try {
-        do {
-          refreshPending.current = false;
-          const next = await request<State>(`/api/v1/sessions/${access.session_id}`, access.token);
-          if (version !== generation.current || leaving.current) return;
-          queueRef.current?.reconcile(next);
-          setState(next);
-          setError("");
-        } while (refreshPending.current);
-      } catch (e) {
-        if (version !== generation.current || leaving.current) return;
-        if (e instanceof RequestError && (e.status === 401 || e.status === 404)) invalidateAccess();
-        else setError((e as Error).message);
-      } finally {
-        if (version === generation.current) refreshing.current = null;
-      }
-    })();
-    refreshing.current = task;
-    return task;
-  }, [access, invalidateAccess]);
+    return refresher.refresh(
+      () => request<State>(`/api/v1/sessions/${access.session_id}`, access.token),
+      (next) => {
+        queueRef.current?.reconcile(next);
+        setState(next);
+        setError("");
+      },
+      (error) => {
+        if (error instanceof RequestError && (error.status === 401 || error.status === 404))
+          invalidateAccess();
+        else setError((error as Error).message);
+      },
+      () => version === generation.current && !leaving.current,
+    );
+  }, [access, invalidateAccess, refresher]);
   useEffect(() => {
     refreshLatest.current = refresh;
     managementRef.current = management || results;
@@ -200,57 +184,13 @@ export function useRoom() {
   useEffect(() => {
     if (!access) return;
     const version = generation.current;
-    let stopped = false,
-      ws: WebSocket,
-      timer: ReturnType<typeof setTimeout>,
-      delay = 1000;
-    function connect() {
-      ws = new WebSocket(
-        `${API_URL.replace(/^http/, "ws")}/api/v1/sessions/${access!.session_id}/ws`,
-      );
-      ws.onopen = () => {
-        if (stopped || version !== generation.current || leaving.current) {
-          ws.close();
-          return;
-        }
-        ws.send(JSON.stringify({ token: access!.token }));
-        delay = 1000;
-        void refresh();
-      };
-      ws.onmessage = (event) => {
-        if (
-          !stopped &&
-          version === generation.current &&
-          !leaving.current &&
-          shouldRefreshRoom(event.data, managementRef.current)
-        )
-          void refresh();
-      };
-      ws.onclose = (event) => {
-        if (stopped || version !== generation.current || leaving.current) return;
-        if (!stopped && event.code !== 1008) {
-          timer = setTimeout(connect, delay);
-          delay = Math.min(delay * 2, 30000);
-        } else if (event.code === 1008) {
-          invalidateAccess();
-        }
-      };
-      ws.onerror = () => ws.close();
-    }
-    connect();
-    const focus = () => {
-      if (version === generation.current && !leaving.current && !document.hidden) void refresh();
-    };
-    // iOS suspends the socket in background tabs and does not always fire focus on return.
-    window.addEventListener("focus", focus);
-    document.addEventListener("visibilitychange", focus);
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-      ws?.close();
-      window.removeEventListener("focus", focus);
-      document.removeEventListener("visibilitychange", focus);
-    };
+    return watchRoom({
+      access,
+      refresh,
+      invalidateAccess,
+      isCurrent: () => version === generation.current && !leaving.current,
+      isRanking: () => managementRef.current,
+    });
   }, [access, refresh, invalidateAccess]);
   const act = useCallback(
     async (action: string, body: unknown = {}) => {
@@ -298,26 +238,7 @@ export function useRoom() {
     setBusy(true);
     setError("");
     try {
-      const tokens = new Set<string>();
-      if (recentAccess) tokens.add(recentAccess.token);
-      try {
-        for (const key of Object.keys(sessionStorage)) {
-          if (!/^platea-[a-f0-9-]{36}$/.test(key)) continue;
-          try {
-            const saved = JSON.parse(sessionStorage.getItem(key) ?? "null") as Access | null;
-            if (saved?.token?.length === 64) tokens.add(saved.token);
-          } catch {
-            /* Ignorar registros locales inválidos. */
-          }
-        }
-      } catch {
-        /* Se puede ingresar sin almacenamiento local. */
-      }
-      const next = await request<Access>(
-        create ? "/api/v1/sessions" : "/api/v1/join",
-        undefined,
-        create ? { name, is_test: isTest } : { name, code, tokens: [...tokens].slice(-64) },
-      );
+      const next = await enterRoom(create, { name, code, isTest }, recentAccess);
       await activate(next);
       return true;
     } catch (e) {
@@ -375,8 +296,7 @@ export function useRoom() {
     queueRef.current?.dispose();
     queueRef.current = null;
     setVoteQueue(null);
-    refreshing.current = null;
-    refreshPending.current = false;
+    refresher.reset();
     try {
       sessionStorage.removeItem("platea-last");
     } catch {

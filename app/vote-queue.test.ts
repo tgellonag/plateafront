@@ -123,6 +123,49 @@ describe("VoteQueue", () => {
     queue.dispose();
   });
 
+  it("VOTE-R3 warns about unreadable stored votes and does not overwrite them", async () => {
+    const storage = memoryStorage();
+    const key = "platea-votes-s1-p1";
+    storage.setItem(key, "{");
+    const send = vi.fn(saved);
+    const queue = new VoteQueue(
+      room(),
+      () => storage,
+      send,
+      async () => {},
+    );
+
+    expect(queue.enqueue(10, true)).toBe(true);
+    await vi.waitFor(() => expect(queue.hasPending).toBe(false));
+
+    expect(send).toHaveBeenCalledOnce();
+    expect(queue.errors).toContain(
+      "No se pudieron recuperar los votos locales. No recargues esta pestaña.",
+    );
+    expect(storage.getItem(key)).toBe("{");
+  });
+
+  it("VOTE-R3 never replays stored votes belonging to a different participant", () => {
+    const storage = memoryStorage();
+    const key = "platea-votes-s1-p1";
+    const foreignVotes = '[{"round":1,"participant_id":"p2","movie_id":10,"liked":true}]';
+    storage.setItem(key, foreignVotes);
+    const send = vi.fn(saved);
+    const queue = new VoteQueue(
+      room(),
+      () => storage,
+      send,
+      async () => {},
+    );
+
+    expect(queue.hasPending).toBe(false);
+    expect(send).not.toHaveBeenCalled();
+    expect(queue.errors).toContain(
+      "No se pudieron recuperar los votos locales. No recargues esta pestaña.",
+    );
+    expect(storage.getItem(key)).toBe(foreignVotes);
+  });
+
   it("VOTE-R4 does not report a loss when a failed request was saved after all", async () => {
     const send = vi.fn(() =>
       Promise.reject(Object.assign(new Error("Rechazado"), { status: 400 })),
@@ -186,6 +229,18 @@ describe("VoteQueue", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("VOTE-R4 retains a receipt-backed vote when an older snapshot arrives without it", async () => {
+    const queue = new VoteQueue(room(), memoryStorage, saved, async () => {});
+    queue.enqueue(10, true);
+    await vi.waitFor(() => expect(queue.hasPending).toBe(false));
+
+    queue.reconcile(room([{ participant_id: "p2", movie_id: 10, liked: false }]));
+
+    expect(queue.confirmed.get(10)).toMatchObject({ participant_id: "p1", liked: true });
+    expect(queue.enqueue(10, false)).toBe(false);
+    expect(queue.errors).toEqual([]);
   });
 
   it("VOTE-R5 keeps the server's opposite vote from a receipt and warns", async () => {
