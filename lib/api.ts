@@ -23,6 +23,18 @@ export type Movie = {
   score: number;
   match: boolean;
 };
+export type PopularityReason =
+  | "no_votes"
+  | "timeout"
+  | "not_configured"
+  | "busy"
+  | "quota"
+  | "http_error"
+  | "network"
+  | "incomplete"
+  | "invalid_response"
+  | "invalid_selection"
+  | "unavailable";
 export type Person = { id: string; name: string; is_host: boolean; progress: number };
 export type State = {
   session: {
@@ -31,6 +43,15 @@ export type State = {
     filters: Filters;
     round: number;
     chosen_movie_id: number | null;
+    group_profile?: string;
+    batch_curation?:
+      | { method: "affinity"; summary: string; analyzed_movies: number; candidate_count?: number }
+      | {
+          method: "popularity";
+          reason: PopularityReason;
+          detail?: string;
+          candidate_count?: number;
+        };
   };
   me: Person;
   participants: Person[];

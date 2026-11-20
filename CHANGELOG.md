@@ -11,3 +11,6 @@ uno de los labels `release:major`, `release:minor` o `release:patch` (ver `VERSI
 ## v0.1.0 - 2026-11-02
 
 - docs: trivial README change (release workflow trial) (#23)
+
+## v0.1.1 - 2026-11-18
+- Show the specific reason when Gemini falls back to popularity (#28)
