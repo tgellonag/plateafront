@@ -23,7 +23,7 @@ const popularityReasons: Record<PopularityReason, string> = {
   not_configured: "Gemini no está configurado.",
   busy: "Gemini está ocupado con otra sala; reintenta.",
   quota: "Se agotó la cuota de Gemini.",
-  http_error: "Gemini respondió con un error.",
+  http_error: "", // the keep-voting notice and the HTTP detail already say it
   network: "No se pudo conectar con Gemini.",
   incomplete: "Gemini cortó su respuesta.",
   invalid_response: "Gemini respondió en un formato inesperado.",
@@ -35,6 +35,11 @@ function BatchCuration({ state }: { state: State }) {
   const { batch_curation: curation, round } = state.session;
   if (!curation) return null;
   const selectedCount = state.movies.filter((movie) => movie.round === round).length;
+  // A backend newer than this build may send a reason we don't know yet.
+  const reason =
+    curation.method === "popularity"
+      ? (popularityReasons[curation.reason] ?? popularityReasons.unavailable)
+      : "";
   const selectedFromLargerPool = (curation.candidate_count ?? 0) > selectedCount;
   return (
     <section className="panel batch-curation" aria-live="polite">
@@ -50,15 +55,23 @@ function BatchCuration({ state }: { state: State }) {
         </>
       ) : (
         <>
-          {/* A backend newer than this build may send a reason we don't know yet. */}
-          <p>{popularityReasons[curation.reason] ?? popularityReasons.unavailable}</p>
-          {curation.reason !== "no_votes" && (
-            <p>
-              Gemini no está funcionando ahora, pero puedes seguir votando: este lote se armó por
-              popularidad.
-            </p>
+          {curation.reason === "no_votes" ? (
+            <p>{reason}</p>
+          ) : (
+            <>
+              <p>
+                Gemini no está funcionando ahora, pero puedes seguir votando: este lote se armó por
+                popularidad.
+              </p>
+              {(reason || curation.detail) && (
+                <details className="curation-detail">
+                  <summary>Detalles</summary>
+                  {reason && <p>{reason}</p>}
+                  {curation.detail && <p>{curation.detail}</p>}
+                </details>
+              )}
+            </>
           )}
-          {curation.detail && <p className="curation-detail">{curation.detail}</p>}
         </>
       )}
     </section>

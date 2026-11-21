@@ -251,10 +251,14 @@ describe("Results", () => {
     const failed = withCuration({ method: "popularity", reason: "http_error", detail: "HTTP 400" });
     const noVotes = withCuration({ method: "popularity", reason: "no_votes" });
 
-    expect(failed).toContain("Gemini respondió con un error.");
+    expect(failed).not.toContain("Gemini respondió con un error.");
     expect(failed).toContain("puedes seguir votando");
-    expect(failed).toContain('<p class="curation-detail">HTTP 400</p>');
+    expect(failed).toMatch(
+      /<details class="curation-detail"><summary>Detalles<\/summary><p>HTTP 400<\/p><\/details>/,
+    );
     expect(noVotes).not.toContain("puedes seguir votando");
+    expect(noVotes).toContain("Todavía no había votos");
+    expect(noVotes).not.toContain("<details");
   });
 });
 
