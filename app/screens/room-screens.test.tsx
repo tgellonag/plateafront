@@ -239,6 +239,23 @@ describe("Results", () => {
       expect(buttonAttributes(html, "Elegir")).toBeUndefined();
     }
   });
+
+  it("AI-R1 tells players they can keep voting when Gemini fails, but not when there were no votes", () => {
+    const withCuration = (batch_curation: State["session"]["batch_curation"]) =>
+      renderToStaticMarkup(
+        <Results
+          room={room}
+          state={{ ...votingState, session: { ...votingState.session, batch_curation } }}
+        />,
+      );
+    const failed = withCuration({ method: "popularity", reason: "http_error", detail: "HTTP 400" });
+    const noVotes = withCuration({ method: "popularity", reason: "no_votes" });
+
+    expect(failed).toContain("Gemini respondió con un error.");
+    expect(failed).toContain("puedes seguir votando");
+    expect(failed).toContain('<p class="curation-detail">HTTP 400</p>');
+    expect(noVotes).not.toContain("puedes seguir votando");
+  });
 });
 
 describe("Filters", () => {
