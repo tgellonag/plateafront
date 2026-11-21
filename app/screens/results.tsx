@@ -52,6 +52,12 @@ function BatchCuration({ state }: { state: State }) {
         <>
           {/* A backend newer than this build may send a reason we don't know yet. */}
           <p>{popularityReasons[curation.reason] ?? popularityReasons.unavailable}</p>
+          {curation.reason !== "no_votes" && (
+            <p>
+              Gemini no está funcionando ahora, pero puedes seguir votando: este lote se armó por
+              popularidad.
+            </p>
+          )}
           {curation.detail && <p className="curation-detail">{curation.detail}</p>}
         </>
       )}
