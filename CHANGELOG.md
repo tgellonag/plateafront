@@ -15,3 +15,6 @@ uno de los labels `release:major`, `release:minor` o `release:patch` (ver `VERSI
 ## v0.1.1 - 2026-11-18
 
 - Show the specific reason when Gemini falls back to popularity (#28)
+
+## v0.1.2 - 2026-11-21
+- Reassure players they can keep voting when Gemini fails (#30)
