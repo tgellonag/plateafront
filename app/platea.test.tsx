@@ -224,7 +224,7 @@ describe("switching rooms", () => {
   function CreateRoom() {
     const room = useContext(RoomContext)!;
     return (
-      <button onClick={() => void room.enter(true, { name: "Ana", code: "", isTest: false })}>
+      <button onClick={() => void room.enter(true, { name: "Ana", code: "" })}>
         Crear otra sala
       </button>
     );

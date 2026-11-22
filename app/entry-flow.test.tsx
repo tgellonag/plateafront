@@ -136,7 +136,7 @@ describe("session step", () => {
     await user.click(create);
 
     expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
-    expect(api.bodies("POST /api/v1/sessions")).toEqual([{ name: "Ana", is_test: false }]);
+    expect(api.bodies("POST /api/v1/sessions")).toEqual([{ name: "Ana" }]);
   });
 });
 

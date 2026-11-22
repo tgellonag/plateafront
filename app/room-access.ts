@@ -21,10 +21,10 @@ export function saveRoomAccess(access: Access) {
 
 export function enterRoom(
   create: boolean,
-  { name, code, isTest }: { name: string; code: string; isTest: boolean },
+  { name, code }: { name: string; code: string },
   recentAccess: Access | null,
 ) {
-  if (create) return request<Access>("/api/v1/sessions", undefined, { name, is_test: isTest });
+  if (create) return request<Access>("/api/v1/sessions", undefined, { name });
 
   const tokens = new Set<string>();
   if (recentAccess) tokens.add(recentAccess.token);
