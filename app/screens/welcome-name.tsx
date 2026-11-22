@@ -25,7 +25,7 @@ export function WelcomeName() {
         <label>
           <span className="sr-only">Tu nombre</span>
           <input
-            autoFocus
+            autoFocus // NOSONAR: único campo de la pantalla, el foco inicial es intencional
             required
             maxLength={30}
             autoComplete="nickname"

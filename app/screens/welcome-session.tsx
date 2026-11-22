@@ -41,7 +41,7 @@ export function WelcomeSession() {
         <label>
           Código de invitación
           <input
-            autoFocus
+            autoFocus // NOSONAR: único campo de la pantalla, el foco inicial es intencional
             required
             value={code}
             onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })}
