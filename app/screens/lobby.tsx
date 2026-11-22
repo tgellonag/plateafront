@@ -8,6 +8,7 @@ import type { State } from "@/lib/api";
 import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
 import { FiltersForm } from "./filters-form";
+import { PreferenceForm } from "./preference-form";
 
 export function Lobby({
   room,
@@ -145,6 +146,11 @@ export function Lobby({
             {busy ? "Preparando películas…" : "Iniciar votación"}
           </button>
         </div>
+      )}
+      {host && (
+        <section className="panel">
+          <PreferenceForm room={room} saved={state.session.group_preference ?? ""} />
+        </section>
       )}
       {host && <FiltersForm room={room} providers={providers} saved={state.session.filters} />}
     </div>

@@ -7,6 +7,7 @@ import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
 import { RankingList } from "./ranking";
 import { FiltersSummary } from "./filters-form";
+import { PreferenceForm } from "./preference-form";
 import { Sheet } from "./sheet";
 
 function hostActions(state: State) {
@@ -152,6 +153,11 @@ export function OptionsMenu({
       </button>
       <Sheet open={open} onClose={() => setOpen(false)}>
         <FiltersSummary filters={session.filters} providers={providers} />
+        {state.me.is_host && session.status === "voting" && (
+          <section>
+            <PreferenceForm room={room} saved={session.group_preference ?? ""} />
+          </section>
+        )}
         <section>
           <h3>
             <Users className="participants-icon" aria-hidden="true" />

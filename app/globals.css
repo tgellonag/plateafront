@@ -909,6 +909,22 @@ dd {
 .my-vote p {
   margin: 0;
 }
+.preference {
+  display: grid;
+  gap: 8px;
+}
+.preference label span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.preference textarea {
+  width: 100%;
+  resize: vertical;
+}
+.preference small {
+  color: var(--muted);
+}
 
 .vitals-shell {
   max-width: 960px;

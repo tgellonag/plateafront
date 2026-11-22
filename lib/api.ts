@@ -44,6 +44,7 @@ export type State = {
     round: number;
     chosen_movie_id: number | null;
     group_profile?: string;
+    group_preference?: string;
     batch_curation?:
       | { method: "affinity"; summary: string; analyzed_movies: number; candidate_count?: number }
       | {
