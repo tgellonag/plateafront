@@ -156,7 +156,7 @@ export function OptionsMenu({
         {open && state.invitation && <Invitation room={room} invitation={state.invitation} />}
         <FiltersSummary filters={session.filters} providers={providers} />
         {state.me.is_host && session.status === "voting" && (
-          <section>
+          <section className="options-preference">
             <PreferenceForm room={room} saved={session.group_preference ?? ""} />
           </section>
         )}
