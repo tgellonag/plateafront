@@ -879,3 +879,20 @@ dd {
   font-size: 1.25rem;
   font-variant-numeric: tabular-nums;
 }
+.tmdb-attribution {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.tmdb-attribution img {
+  display: block;
+  height: 9px;
+  width: auto;
+}
+.tmdb-attribution p {
+  margin: 0;
+}

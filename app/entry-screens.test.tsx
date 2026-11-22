@@ -20,6 +20,17 @@ function SessionEntry() {
   );
 }
 
+const entryRouter = {
+  back() {},
+  forward() {},
+  push() {},
+  replace() {},
+  refresh() {},
+  hmrRefresh() {},
+  prefetch() {},
+  bfcacheId: "entry",
+};
+
 describe("session entry", () => {
   it("INV-R8 keeps the startup screen busy before showing the entry form", () => {
     const html = renderToStaticMarkup(
@@ -36,18 +47,8 @@ describe("session entry", () => {
   });
 
   it("INV-R8 labels the name field and disables continuing from an empty draft", () => {
-    const router = {
-      back() {},
-      forward() {},
-      push() {},
-      replace() {},
-      refresh() {},
-      hmrRefresh() {},
-      prefetch() {},
-      bfcacheId: "entry",
-    };
     const html = renderToStaticMarkup(
-      <AppRouterContext value={router}>
+      <AppRouterContext value={entryRouter}>
         <PathnameContext value="/">
           <WelcomeDraftProvider>
             <WelcomeName />
@@ -59,6 +60,24 @@ describe("session entry", () => {
     expect(html).toContain("Tu nombre");
     expect(html).toContain('maxLength="30"');
     expect(html).toMatch(/<button\b[^>]*disabled=""[^>]*>Continuar/);
+  });
+
+  it("LEGAL-R1 shows the TMDB logo and notice on the welcome screen", () => {
+    const html = renderToStaticMarkup(
+      <AppRouterContext value={entryRouter}>
+        <PathnameContext value="/">
+          <WelcomeDraftProvider>
+            <WelcomeName />
+          </WelcomeDraftProvider>
+        </PathnameContext>
+      </AppRouterContext>,
+    );
+
+    expect(html).toContain('href="https://www.themoviedb.org/"');
+    expect(html).toContain('alt="The Movie Database (TMDB)"');
+    expect(html).toContain(
+      "Este producto usa la API de TMDB, pero TMDB no lo avala ni lo certifica.",
+    );
   });
 
   it.each([
