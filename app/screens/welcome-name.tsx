@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { useWelcomeDraft } from "../welcome-draft";
+import { TmdbAttribution } from "./tmdb-attribution";
 
 export function WelcomeName() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export function WelcomeName() {
           <ArrowRight aria-hidden="true" />
         </button>
       </form>
+      <TmdbAttribution />
     </section>
   );
 }

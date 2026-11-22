@@ -5,6 +5,7 @@ import { redirect, usePathname } from "next/navigation";
 import { LoaderCircle, LogIn, Plus } from "lucide-react";
 import { RoomContext } from "../use-room";
 import { emptyWelcomeDraft, useWelcomeDraft } from "../welcome-draft";
+import { TmdbAttribution } from "./tmdb-attribution";
 
 export function WelcomeSession() {
   const pathname = usePathname();
@@ -93,6 +94,7 @@ export function WelcomeSession() {
           </label>
         </details>
       </form>
+      <TmdbAttribution />
     </section>
   );
 }
