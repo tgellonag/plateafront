@@ -84,6 +84,7 @@ describe("normalizePage", () => {
     ["/", "/"],
     ["/start", "/start"],
     ["/start/", "/start"],
+    ["/start//", "/start"],
     ["/join/ABC234", "/join/[code]"],
     ["/join/ABC234/start", "/join/[code]/start"],
     ["/room/3f2c9d1e-0000-4000-a000-000000000000", "/room/[id]"],
