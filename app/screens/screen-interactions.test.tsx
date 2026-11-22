@@ -388,6 +388,50 @@ it("RANK-R7 expands the ranking and details who voted for and against a candidat
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
+describe("changing my vote", () => {
+  const rankingWithMyVote = (status: "voting" | "closed"): State => ({
+    ...votingState,
+    session: { ...votingState.session, status },
+    votes: [
+      { participant_id: host.id, movie_id: 1, liked: true },
+      { participant_id: guest.id, movie_id: 2, liked: false },
+    ],
+  });
+
+  it("VOTE-R9 offers to flip my confirmed vote from the ranking while voting", async () => {
+    const user = userEvent.setup();
+    const room = fakeRoom();
+    render(<RankingList room={room} state={rankingWithMyVote("voting")} />);
+
+    await user.click(screen.getByText("Primera"));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Tu voto: Me gusta")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Cambiar a No me gusta" }));
+
+    expect(room.run).toHaveBeenCalledWith("change_vote", { movie_id: 1, liked: false });
+  });
+
+  it("VOTE-R9 offers no change for a movie I have not voted", async () => {
+    const user = userEvent.setup();
+    render(<RankingList room={fakeRoom()} state={rankingWithMyVote("voting")} />);
+
+    await user.click(screen.getByText("Segunda"));
+
+    expect(within(screen.getByRole("dialog")).queryByText(/Tu voto/)).not.toBeInTheDocument();
+  });
+
+  it("VOTE-R9 offers no change once voting has closed", async () => {
+    const user = userEvent.setup();
+    render(<RankingList room={fakeRoom()} state={rankingWithMyVote("closed")} />);
+
+    await user.click(screen.getByText("Primera"));
+
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("button", { name: /Cambiar a/ }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("Gemini curation", () => {
   it.each([
     [30, "Gemini eligió 2 de 30 candidatas según los votos del grupo."],

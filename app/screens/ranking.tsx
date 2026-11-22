@@ -14,6 +14,9 @@ export function RankingList({ room, state }: { room: Room; state: State }) {
   const { session } = state;
   const host = state.me.is_host;
   const movie = state.movies.find((m) => m.id === selected);
+  const myVote = state.votes.find(
+    (v) => v.movie_id === selected && v.participant_id === state.me.id,
+  );
   return (
     <section className="panel">
       <ol id="movie-ranking" className="ranking">
@@ -86,6 +89,17 @@ export function RankingList({ room, state }: { room: Room; state: State }) {
                 </p>
               );
             })}
+            {session.status === "voting" && myVote && (
+              <div className="my-vote">
+                <p>Tu voto: {myVote.liked ? "Me gusta" : "No me gusta"}</p>
+                <button
+                  disabled={busy}
+                  onClick={() => run("change_vote", { movie_id: movie.id, liked: !myVote.liked })}
+                >
+                  Cambiar a {myVote.liked ? "No me gusta" : "Me gusta"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Sheet>
