@@ -43,3 +43,6 @@ next-env.d.ts
 
 # lighthouse ci
 .lighthouseci
+
+# reporte de vitals (local)
+vitals-issue.md
