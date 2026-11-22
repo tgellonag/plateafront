@@ -73,6 +73,7 @@ jobs:
           {
             echo ""
             echo "## ${NEW_TAG} - ${DATE}"
+            echo "" # Prettier requires a blank line after headings; format:check fails without it
             echo "- ${PR_TITLE} (#${PR_NUMBER})"
           } >> CHANGELOG.md
 

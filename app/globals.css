@@ -299,6 +299,9 @@ header {
   color: var(--muted);
   font-size: 0.8rem;
 }
+.curation-detail summary {
+  cursor: pointer;
+}
 .lobby {
   padding: 20px 16px;
   border: 1px solid var(--line);
