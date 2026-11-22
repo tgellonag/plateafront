@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -18,7 +18,9 @@ import {
 import { navigationHooks } from "@/test/navigation";
 import { Platea } from "./platea";
 import Room from "./room/[id]/page";
+import JoinStart from "./join/[code]/start/page";
 import { RoomContext } from "./use-room";
+import { useWelcomeDraft } from "./welcome-draft";
 
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/navigation")>()),
@@ -29,18 +31,16 @@ setupBrowserFakes();
 
 const roomPath = "/api/v1/sessions/room-1";
 const noProviders = { "GET /api/v1/providers": () => ({ providers: [], stale: false }) };
-const resumes = { [`POST ${roomPath}/resume`]: () => ({ ok: true }) };
 
 function saveAccess() {
   sessionStorage.setItem("platea-room-1", JSON.stringify(access));
 }
 
 describe("restoring access", () => {
-  it("INV-R6 restores the room in the URL after the server accepts the saved access", async () => {
+  it("INV-R6 restores an active room using its saved token without rejoining", async () => {
     saveAccess();
     const api = fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => ({ ...lobbyState, me: guest, invitation: null }),
     });
     renderAt("/room/room-1", <Room />);
@@ -48,7 +48,10 @@ describe("restoring access", () => {
     expect(
       await screen.findByText("Esperando que el anfitrión inicie la votación."),
     ).toBeInTheDocument();
-    expect(api.calls[0]).toMatchObject({ route: `POST ${roomPath}/resume`, token: access.token });
+    expect(api.calls).toContainEqual(
+      expect.objectContaining({ route: `GET ${roomPath}`, token: access.token }),
+    );
+    expect(api.count(`POST ${roomPath}/resume`)).toBe(0);
   });
 
   it("INV-R6 falls back to the name step when the room has no saved access", async () => {
@@ -60,37 +63,86 @@ describe("restoring access", () => {
     expect(api.count(`POST ${roomPath}/resume`)).toBe(0);
   });
 
-  it("INV-R11 shows why restoring failed and resumes the recent access on retry", async () => {
+  it("INV-R11 shows why restoring failed without offering to rejoin a room", async () => {
     saveAccess();
     sessionStorage.setItem("platea-recent", JSON.stringify(access));
-    let resumable = false;
-    fakeApi({
+    const api = fakeApi({
       ...noProviders,
-      [`POST ${roomPath}/resume`]: () =>
-        resumable ? { ok: true } : json({ error: "La sala no responde" }, 503),
-      [`GET ${roomPath}`]: () => lobbyState,
+      [`GET ${roomPath}`]: () => json({ error: "Tu acceso ya no es válido" }, 401),
     });
     renderAt("/room/room-1", <Platea />);
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("La sala no responde");
-
-    resumable = true;
-    const retry = within(alert).getByRole("button", { name: "Reintentar" });
-    await waitFor(() => expect(retry).toBeEnabled());
-    await userEvent.click(retry);
-
-    expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(alert).toHaveTextContent("Tu acceso ya no es válido");
+    expect(within(alert).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText("¿Cómo te llamas?")).toBeInTheDocument();
+    expect(api.count(`POST ${roomPath}/resume`)).toBe(0);
   });
 
-  it("INV-R11 never restores a saved access from an invitation link", async () => {
-    saveAccess();
-    sessionStorage.setItem("platea-last", "room-1");
-    const api = fakeApi(noProviders);
-    renderAt("/join/ABC234", <Platea />);
+  it.each(["/", "/start", "/join/ABC234", "/join/ABC234/start"])(
+    "INV-R11 never restores a saved access on the entry route %s",
+    async (path) => {
+      saveAccess();
+      sessionStorage.setItem("platea-last", "room-1");
+      sessionStorage.setItem("platea-recent", JSON.stringify(access));
+      const api = fakeApi(noProviders);
+      renderAt(path, <Platea />);
 
-    expect(await screen.findByText("¿Cómo te llamas?")).toBeInTheDocument();
+      expect(await screen.findByText("¿Cómo te llamas?")).toBeInTheDocument();
+      expect(api.count(`POST ${roomPath}/resume`)).toBe(0);
+      expect(api.count(`GET ${roomPath}`)).toBe(0);
+    },
+  );
+
+  it("INV-R11 leaves Unirse available after a rejected invitation instead of resuming recent access", async () => {
+    function Entry() {
+      const [, setDraft] = useWelcomeDraft();
+      const [named, setNamed] = useState(false);
+      return named ? (
+        <JoinStart />
+      ) : (
+        <button
+          onClick={() => {
+            setDraft({ name: "Ana", code: null });
+            setNamed(true);
+          }}
+        >
+          Continuar
+        </button>
+      );
+    }
+
+    saveAccess();
+    sessionStorage.setItem("platea-recent", JSON.stringify(access));
+    const api = fakeApi({
+      ...noProviders,
+      "POST /api/v1/join": (body: { code: string }) =>
+        body.code === "ABC234"
+          ? json({ error: "No es posible ingresar con esta invitación" }, 400)
+          : access,
+      [`GET ${roomPath}`]: () => lobbyState,
+    });
+    const user = userEvent.setup();
+    renderAt("/join/ABC234/start", <Entry />);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    const join = await screen.findByRole("button", { name: "Unirse" });
+    expect(api.count("POST /api/v1/join")).toBe(0);
+    await user.click(join);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No es posible ingresar con esta invitación");
+    expect(within(alert).queryByRole("button")).not.toBeInTheDocument();
+    expect(api.count(`GET ${roomPath}`)).toBe(0);
+
+    const code = screen.getByRole("textbox", { name: "Código de invitación" });
+    await user.clear(code);
+    await user.type(code, "NEW234");
+    await user.click(screen.getByRole("button", { name: "Unirse" }));
+    expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
+    expect(api.bodies("POST /api/v1/join")).toEqual([
+      { name: "Ana", code: "ABC234", tokens: [access.token] },
+      { name: "Ana", code: "NEW234", tokens: [access.token] },
+    ]);
     expect(api.count(`POST ${roomPath}/resume`)).toBe(0);
   });
 });
@@ -101,7 +153,6 @@ describe("room actions", () => {
     let revoked = false;
     fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => (revoked ? json({ error: "Sin acceso" }, 401) : lobbyState),
       [`POST ${roomPath}/start`]: () => json({ error: "No hay películas" }, 409),
     });
@@ -126,7 +177,7 @@ describe("room actions", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("bloqueado");
     });
-    const api = fakeApi({ ...noProviders, ...resumes, [`GET ${roomPath}`]: () => votingState });
+    const api = fakeApi({ ...noProviders, [`GET ${roomPath}`]: () => votingState });
     renderAt("/room/room-1", <Platea />);
 
     expect(await screen.findByRole("status")).toHaveTextContent(
@@ -146,7 +197,6 @@ describe("leaving", () => {
     saveAccess();
     const api = fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => votingState,
       [`POST ${roomPath}/vote`]: () => new Promise(() => {}),
       [`POST ${roomPath}/leave`]: () => ({ ok: true }),
@@ -182,7 +232,6 @@ describe("leaving", () => {
     saveAccess();
     fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => lobbyState,
       [`POST ${roomPath}/leave`]: () => json({ error: "Sin acceso" }, 401),
     });
@@ -196,7 +245,6 @@ describe("leaving", () => {
 
     expect(await screen.findByText("¿Cómo te llamas?")).toBeInTheDocument();
     expect(location.pathname).toBe("/");
-    expect(sessionStorage.getItem("platea-last")).toBeNull();
     expect(JSON.parse(sessionStorage.getItem("platea-recent")!)).toEqual(access);
   });
 
@@ -204,7 +252,6 @@ describe("leaving", () => {
     saveAccess();
     const api = fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => lobbyState,
       [`POST ${roomPath}/leave`]: () => json({ error: "Servidor caído" }, 500),
     });
@@ -237,7 +284,6 @@ describe("switching rooms", () => {
     let firstRoomReads = 0;
     fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () =>
         ++firstRoomReads === 1
           ? { ...lobbyState, invitation: { code: "OLD234", expires_at: "2099-01-01T00:00:00Z" } }
@@ -276,7 +322,6 @@ describe("ranking route", () => {
     saveAccess();
     fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => ({
         ...votingState,
         votes: [
@@ -294,7 +339,7 @@ describe("ranking route", () => {
 
   it("RANK-R6 sends the ranking route back to the room before voting starts", async () => {
     saveAccess();
-    fakeApi({ ...noProviders, ...resumes, [`GET ${roomPath}`]: () => lobbyState });
+    fakeApi({ ...noProviders, [`GET ${roomPath}`]: () => lobbyState });
     renderAt("/room/room-1/manage", <Platea />);
 
     expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
@@ -305,7 +350,6 @@ describe("ranking route", () => {
     saveAccess();
     fakeApi({
       ...noProviders,
-      ...resumes,
       [`GET ${roomPath}`]: () => ({ ...votingState, me: guest }),
     });
     renderAt("/room/room-1/manage", <Platea />);
@@ -325,7 +369,6 @@ it("FIL-R5 lets the host retry loading streaming services", async () => {
       available
         ? { providers: [{ provider_id: 337, provider_name: "Disney Plus" }], stale: true }
         : json({ error: "Catálogo no disponible" }, 503),
-    ...resumes,
     [`GET ${roomPath}`]: () => lobbyState,
   });
   renderAt("/room/room-1", <Platea />);

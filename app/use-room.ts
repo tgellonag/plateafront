@@ -9,7 +9,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { usePathname } from "next/navigation";
-import { enterRoom, resumeAccess, savedRoomAccess, saveRoomAccess } from "./room-access";
+import { enterRoom, savedRoomAccess, saveRoomAccess } from "./room-access";
 import { createRoomRefresher, watchRoom } from "./room-live";
 import { VoteQueue, type VoteReceipt } from "./vote-queue";
 import { remainingMovies } from "./screens/voting";
@@ -21,7 +21,7 @@ const zero = () => 0;
 export type Room = ReturnType<typeof useRoom>;
 export const RoomContext = createContext<Room | null>(null);
 
-// Session lifecycle: boot/resume, live sync, actions and leaving. Screens only render.
+// Session lifecycle: restoring active access, live sync, actions and leaving. Screens only render.
 export function useRoom() {
   const pathname = usePathname();
   const managementRoute = pathname.endsWith("/manage");
@@ -79,6 +79,14 @@ export function useRoom() {
   }, [refresher]);
   const activate = useCallback(
     async (next: Access, signal?: AbortSignal) => {
+      // Check existing access without rejoining a room the participant has left.
+      const ready = await request<State>(
+        `/api/v1/sessions/${next.session_id}`,
+        next.token,
+        undefined,
+        signal,
+      );
+      if (signal?.aborted) return;
       setRecentAccess(next);
       setNotice("");
       try {
@@ -88,13 +96,6 @@ export function useRoom() {
           "El navegador no permite guardar tu acceso. No recargues ni cierres esta pestaña durante la sesión.",
         );
       }
-      const ready = await request<State>(
-        `/api/v1/sessions/${next.session_id}`,
-        next.token,
-        undefined,
-        signal,
-      );
-      if (signal?.aborted) return;
       generation.current++;
       refresher.reset();
       leaving.current = false;
@@ -133,16 +134,11 @@ export function useRoom() {
       } catch {
         /* El acceso guardado es opcional. */
       }
-      if (pathname.split("/")[1] === "join") {
-        setBooting(false);
-        return;
-      }
       try {
         const saved = savedRoomAccess(pathname);
         if (saved) {
           setBusy(true);
-          const restored = await resumeAccess(saved);
-          if (!cancelled) await activate(restored, controller.signal);
+          await activate(saved, controller.signal);
         }
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -245,18 +241,6 @@ export function useRoom() {
       setBusy(false);
     }
   }
-  async function resume() {
-    if (!recentAccess || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      await activate(await resumeAccess(recentAccess));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   async function leave() {
     if (busy || leaving.current) return;
     if (
@@ -294,11 +278,6 @@ export function useRoom() {
     queueRef.current = null;
     setVoteQueue(null);
     refresher.reset();
-    try {
-      sessionStorage.removeItem("platea-last");
-    } catch {
-      /* El token en memoria sigue siendo válido hasta salir. */
-    }
     setAccess(null);
     setBusy(false);
     setState(null);
@@ -319,14 +298,12 @@ export function useRoom() {
     filtersPending,
     setFiltersPending,
     booting,
-    recentAccess,
     management,
     finished,
     results,
     refresh,
     run,
     enter,
-    resume,
     leave,
   };
 }

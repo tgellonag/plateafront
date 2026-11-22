@@ -34,14 +34,12 @@ const room: Room = {
   filtersPending: false,
   setFiltersPending: () => {},
   booting: false,
-  recentAccess: null,
   management: false,
   finished: false,
   results: false,
   refresh: async () => {},
   run: () => {},
   enter: async () => false,
-  resume: async () => {},
   leave: async () => {},
 };
 

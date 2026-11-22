@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { API_URL, RequestError } from "@/lib/api";
-import { enterRoom, resumeAccess, savedRoomAccess, saveRoomAccess } from "./room-access";
+import { API_URL } from "@/lib/api";
+import { enterRoom, savedRoomAccess, saveRoomAccess } from "./room-access";
 
 const access = {
   session_id: "a0000000-0000-0000-0000-000000000001",
@@ -34,10 +34,10 @@ describe("room access", () => {
 
     expect(JSON.parse(saved[`platea-${access.session_id}`])).toEqual(access);
     expect(JSON.parse(saved["platea-recent"])).toEqual(access);
-    expect(saved["platea-last"]).toBe(access.session_id);
+    expect(saved["platea-last"]).toBeUndefined();
   });
 
-  it("INV-R6 prioritizes the room in the URL over the last visited room", () => {
+  it("INV-R6 only looks up access for the room named in the URL", () => {
     storage({
       "platea-last": access.session_id,
       [`platea-${access.session_id}`]: JSON.stringify(access),
@@ -45,35 +45,9 @@ describe("room access", () => {
     });
 
     expect(savedRoomAccess(`/room/${other.session_id}/manage`)).toEqual(other);
-    expect(savedRoomAccess("/")).toEqual(access);
+    expect(savedRoomAccess("/")).toBeNull();
+    expect(savedRoomAccess("/room")).toBeNull();
     expect(savedRoomAccess("/room/unknown")).toBeNull();
-  });
-
-  it("INV-R6 resumes through the server using the saved access token", async () => {
-    const fetch = vi.fn(async () => Response.json({ ok: true }));
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(resumeAccess(access)).resolves.toEqual(access);
-    expect(fetch).toHaveBeenCalledExactlyOnceWith(
-      `${API_URL}/api/v1/sessions/${access.session_id}/resume`,
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          Authorization: `Bearer ${access.token}`,
-        }),
-      }),
-    );
-  });
-
-  it("INV-R6 propagates the server's refusal to resume an expired access", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => Response.json({ error: "Acceso vencido" }, { status: 401 })),
-    );
-
-    const result = resumeAccess(access);
-    await expect(result).rejects.toBeInstanceOf(RequestError);
-    await expect(result).rejects.toMatchObject({ status: 401, message: "Acceso vencido" });
   });
 
   it("INV-R7 ignores malformed storage entries and sends a duplicated access token only once", async () => {
