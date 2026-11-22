@@ -55,6 +55,23 @@ reales) y usa TBT como aproximación. Los datos de [`/vitals`](https://plateafro
 son de **campo**: el p75 de usuarios reales, con sus dispositivos y redes. Son complementarios y
 sus números no tienen por qué coincidir.
 
+## Monitoreo de Core Web Vitals
+
+La página [`/vitals`](https://plateafront.vercel.app/vitals) muestra el p75 de usuarios reales. El
+workflow `Monitoreo · Core Web Vitals` hace lo mismo sin abrirla:
+
+- **Cuándo corre:** todos los días a las 12:00 UTC y a mano desde la pestaña _Actions_ ("Run
+  workflow"), donde se puede indicar una versión para ver solo esa. Los workflows programados solo
+  corren desde la rama por defecto.
+- **Qué hace:** lee `GET /api/v1/vitals/summary` del backend y deja la tabla en la pestaña
+  _Summary_ del run. La URL del backend se puede cambiar con la variable de repositorio `API_URL`.
+- **Issue:** si el p75 de LCP, INP o CLS de una fila con las muestras mínimas (20) queda fuera de
+  «bueno» (LCP ≤ 2,5 s, INP ≤ 200 ms, CLS ≤ 0,1), abre un issue con la etiqueta `web-vitals`; los
+  días siguientes lo actualiza en vez de abrir otro, y lo cierra solo cuando todo vuelve a «bueno».
+  Con filas sin muestras suficientes no hace nada, y con una versión filtrada no toca el issue.
+- **Local:** `API_URL=https://… node scripts/vitals-report.mjs` imprime la tabla y escribe
+  `vitals-issue.md`.
+
 ## Despliegue
 
 Configurar `NEXT_PUBLIC_API_URL` con la URL HTTPS del backend **antes de compilar**
