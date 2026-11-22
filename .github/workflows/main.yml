@@ -1,3 +1,4 @@
+# CI de main y de tags v*: quality y tests. SAST corre en el PR; Trivy en security.yml.
 name: CI · Main
 
 on:
@@ -21,16 +22,5 @@ jobs:
     name: Test
     uses: ./.github/workflows/_test.yml
 
-  build:
-    name: Build
-    uses: ./.github/workflows/_build.yml
-
-  semgrep:
-    name: SAST
-    uses: ./.github/workflows/_semgrep.yml
-
-  trivy:
-    name: SCA
-    uses: ./.github/workflows/_trivy.yml
-    with:
-      severity: HIGH,CRITICAL
+  # CD: no hay job de deploy. Vercel construye y despliega solo desde main (y un preview en
+  # cada PR, que aparece como check "Vercel").

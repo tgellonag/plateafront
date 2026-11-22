@@ -23,5 +23,5 @@ jobs:
 
       - run: npm ci
 
-      - name: Vitest
-        run: npm test
+      - name: Vitest (cobertura ≥ 75 %)
+        run: npm run test:coverage
