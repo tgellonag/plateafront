@@ -5,6 +5,7 @@ name: SonarQube - Issues y calidad local
 on:
   schedule:
     - cron: "0 11 * * 1" # lunes 11:00 UTC, después de security.yml
+  workflow_dispatch: # opcional, para correrlo fuera de horario (p. ej. antes de una entrega)
 
 permissions:
   contents: read
