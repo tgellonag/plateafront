@@ -23,3 +23,7 @@ uno de los labels `release:major`, `release:minor` o `release:patch` (ver `VERSI
 ## v0.1.3 - 2026-11-22
 
 - Tuck Gemini failure details behind a Detalles toggle (#31)
+
+## v0.2.0 - 2026-11-22
+
+- Add a dedicated participant management view (#45)
