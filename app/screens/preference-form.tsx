@@ -36,7 +36,9 @@ export function PreferenceForm({ room, saved }: { room: Room; saved: string }) {
           {draft.length}/{maxPreferenceLength}
         </span>
       </small>
-      <button type="submit" disabled={room.busy || normalized === saved}>Guardar preferencia</button>
+      <button type="submit" disabled={room.busy || normalized === saved}>
+        Guardar preferencia
+      </button>
     </form>
   );
 }
