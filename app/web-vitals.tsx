@@ -47,13 +47,17 @@ export function WebVitals() {
     };
 
     // Se importa después de hidratar para que web-vitals no compita con la carga de la página.
-    import("web-vitals/attribution").then(({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
-      if (!active) return;
-      for (const on of [onLCP, onINP, onCLS, onFCP, onTTFB]) {
-        on(report);
-        on(show, { reportAllChanges: true });
-      }
-    });
+    import("web-vitals/attribution")
+      .then(({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
+        if (!active) return;
+        for (const on of [onLCP, onINP, onCLS, onFCP, onTTFB]) {
+          on(report);
+          on(show, { reportAllChanges: true });
+        }
+      })
+      .catch(() => {
+        // Las métricas son opcionales: si el chunk no carga (sin red, despliegue nuevo), se omiten.
+      });
 
     return () => {
       active = false;
