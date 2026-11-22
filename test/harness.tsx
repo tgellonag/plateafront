@@ -77,6 +77,7 @@ export function fakeRoom(overrides: Partial<Room> = {}): Room {
     booting: false,
     management: false,
     finished: false,
+    participantsView: false,
     results: false,
     refresh: vi.fn(async () => {}),
     run: vi.fn(),
@@ -163,5 +164,12 @@ export function setupBrowserFakes() {
 export function renderAt(path: string, ui: ReactNode) {
   navigation.pathname = path;
   history.replaceState({}, "", path);
-  return render(<WelcomeDraftProvider>{ui}</WelcomeDraftProvider>);
+  const view = render(<WelcomeDraftProvider>{ui}</WelcomeDraftProvider>);
+  return {
+    ...view,
+    rerenderAfterNavigation(next: ReactNode) {
+      navigation.pathname = location.pathname;
+      view.rerender(<WelcomeDraftProvider>{next}</WelcomeDraftProvider>);
+    },
+  };
 }
