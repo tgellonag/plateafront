@@ -231,14 +231,11 @@ export function useRoom() {
     }, 10000);
     return () => clearInterval(timer);
   }, [invitation, busy, act]);
-  async function enter(
-    create: boolean,
-    { name, code, isTest }: { name: string; code: string; isTest: boolean },
-  ) {
+  async function enter(create: boolean, { name, code }: { name: string; code: string }) {
     setBusy(true);
     setError("");
     try {
-      const next = await enterRoom(create, { name, code, isTest }, recentAccess);
+      const next = await enterRoom(create, { name, code }, recentAccess);
       await activate(next);
       return true;
     } catch (e) {

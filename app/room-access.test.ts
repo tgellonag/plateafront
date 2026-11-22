@@ -87,9 +87,9 @@ describe("room access", () => {
     const fetch = vi.fn(async () => Response.json(access));
     vi.stubGlobal("fetch", fetch);
 
-    await expect(
-      enterRoom(false, { name: "Ana", code: "ABC234", isTest: false }, access),
-    ).resolves.toEqual(access);
+    await expect(enterRoom(false, { name: "Ana", code: "ABC234" }, access)).resolves.toEqual(
+      access,
+    );
     expect(fetch).toHaveBeenCalledExactlyOnceWith(
       `${API_URL}/api/v1/join`,
       expect.objectContaining({
@@ -109,23 +109,23 @@ describe("room access", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () => Response.json(access));
     vi.stubGlobal("fetch", fetch);
 
-    await enterRoom(false, { name: "Ana", code: "ABC234", isTest: false }, null);
+    await enterRoom(false, { name: "Ana", code: "ABC234" }, null);
     const { tokens } = JSON.parse(String(fetch.mock.calls[0][1]?.body));
     expect(tokens).toHaveLength(64);
     expect(tokens[0]).toMatch(/0{63}1/);
     expect(tokens[63]).toMatch(/0{62}64/);
   });
 
-  it("INV-R7 creates a demonstration room without including a join code or stored tokens", async () => {
+  it("INV-R7 creates a room with only the participant name", async () => {
     const fetch = vi.fn(async () => Response.json(access));
     vi.stubGlobal("fetch", fetch);
 
-    await enterRoom(true, { name: "Ana", code: "ABC234", isTest: true }, access);
+    await enterRoom(true, { name: "Ana", code: "ABC234" }, access);
 
     expect(fetch).toHaveBeenCalledExactlyOnceWith(
       `${API_URL}/api/v1/sessions`,
       expect.objectContaining({
-        body: '{"name":"Ana","is_test":true}',
+        body: '{"name":"Ana"}',
       }),
     );
   });

@@ -25,7 +25,7 @@ export function WelcomeSession() {
   async function connect(create: boolean) {
     if (busy) return;
     setPendingAction(create ? "create" : "join");
-    if (await enter(create, { name, code, isTest: false })) setDraft(emptyWelcomeDraft);
+    if (await enter(create, { name, code })) setDraft(emptyWelcomeDraft);
   }
   return (
     <section className="welcome">
