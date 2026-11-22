@@ -1,4 +1,4 @@
-name: _quality
+name: Paso · Calidad
 
 on:
   workflow_call:

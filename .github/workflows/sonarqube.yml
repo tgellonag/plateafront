@@ -1,6 +1,6 @@
 # Instancia temporal local en el runner; no requiere secrets ni servidor externo.
 # Preparación adaptada a Next.js/TypeScript: vitest con cobertura antes del análisis.
-name: SonarQube - Issues y calidad local
+name: Revisión · SonarQube
 
 on:
   schedule:

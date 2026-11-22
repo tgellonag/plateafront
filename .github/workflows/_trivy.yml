@@ -1,4 +1,4 @@
-name: _trivy
+name: Paso · Trivy
 
 on:
   workflow_call:

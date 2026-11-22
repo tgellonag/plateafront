@@ -4,7 +4,7 @@
 # Activación: crea el secreto GEMINI_API_KEY (Google AI Studio) en Settings, Secrets and variables, Actions.
 # Sin el secreto (o en PR desde forks, que no reciben secretos) el job termina en verde
 # con un aviso en el resumen del run.
-name: Revisión con IA
+name: Revisión · IA (Gemini)
 
 on:
   pull_request:
