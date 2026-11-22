@@ -8,11 +8,13 @@ import { WelcomeName } from "./screens/welcome-name";
 import { Lobby } from "./screens/lobby";
 import { Voting } from "./screens/voting";
 import { Results, OptionsMenu } from "./screens/results";
+import { Participants } from "./screens/participants";
 
 export function Platea({ children }: { children?: ReactNode }) {
   const room = useRoom();
   const providers = useProviders();
-  const { access, state, voteQueue, error, notice, busy, booting, results } = room;
+  const { access, state, voteQueue, error, notice, busy, booting, results, participantsView } =
+    room;
   const session = state?.session;
   return (
     <RoomContext value={room}>
@@ -43,7 +45,15 @@ export function Platea({ children }: { children?: ReactNode }) {
         ) : state && session ? (
           <>
             <div className="room-heading">
-              <h1>{results ? "Ranking" : session.status === "open" ? "Sala" : "Votación"}</h1>
+              <h1>
+                {participantsView
+                  ? "Participantes"
+                  : results
+                    ? "Ranking"
+                    : session.status === "open"
+                      ? "Sala"
+                      : "Votación"}
+              </h1>
               <div className="room-status">
                 {!!voteQueue?.errors.length && (
                   <button
@@ -62,13 +72,16 @@ export function Platea({ children }: { children?: ReactNode }) {
                     <LogOut aria-hidden="true" />
                     Salir
                   </button>
-                ) : session.status === "voting" || session.status === "closed" ? (
+                ) : !participantsView &&
+                  (session.status === "voting" || session.status === "closed") ? (
                   <OptionsMenu room={room} state={state} providers={providers} />
                 ) : null}
               </div>
             </div>
             {session.status === "open" ? (
               <Lobby room={room} state={state} providers={providers} />
+            ) : participantsView ? (
+              <Participants room={room} state={state} />
             ) : results ? (
               <Results room={room} state={state} />
             ) : session.status === "voting" ? (

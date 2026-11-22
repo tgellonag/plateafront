@@ -25,6 +25,7 @@ export const RoomContext = createContext<Room | null>(null);
 export function useRoom() {
   const pathname = usePathname();
   const managementRoute = pathname.endsWith("/manage");
+  const participantsRoute = pathname.endsWith("/participants");
   const [access, setAccess] = useState<Access | null>(null),
     [voteQueue, setVoteQueue] = useState<VoteQueue | null>(null),
     [state, setState] = useState<State | null>(null),
@@ -35,10 +36,12 @@ export function useRoom() {
     [booting, setBooting] = useState(true),
     [recentAccess, setRecentAccess] = useState<Access | null>(null);
   const management = state?.session.status === "closed";
+  const participantsView = participantsRoute && !!state && state.session.status !== "open";
   const finished =
     !!state && state.session.status === "voting" && remainingMovies(state, voteQueue).length === 0;
   const results =
-    management || (state?.session.status === "voting" && (finished || managementRoute));
+    !participantsView &&
+    (management || (state?.session.status === "voting" && (finished || managementRoute)));
   useSyncExternalStore(
     voteQueue?.subscribe ?? noSubscription,
     voteQueue?.getSnapshot ?? zero,
@@ -46,11 +49,11 @@ export function useRoom() {
   );
   useEffect(() => {
     // Make the results route sticky before another batch can extend the deck.
-    if (state?.session.status === "voting" && finished && !managementRoute)
+    if (state?.session.status === "voting" && finished && !managementRoute && !participantsRoute)
       history.replaceState({}, "", `/room/${state.session.id}/manage`);
-    else if (managementRoute && state?.session.round === 0)
+    else if ((managementRoute || participantsRoute) && state?.session.round === 0)
       history.replaceState({}, "", `/room/${state.session.id}`);
-  }, [managementRoute, state, finished]);
+  }, [managementRoute, participantsRoute, state, finished]);
   const [refresher] = useState(createRoomRefresher);
   const generation = useRef(0),
     leaving = useRef(false),
@@ -117,7 +120,7 @@ export function useRoom() {
       setState(ready);
       setAccess(next);
       const path = `/room/${next.session_id}`;
-      if (location.pathname !== path && location.pathname !== `${path}/manage`)
+      if (![path, `${path}/manage`, `${path}/participants`].includes(location.pathname))
         history.pushState({}, "", path);
     },
     [refresher],
@@ -300,6 +303,7 @@ export function useRoom() {
     booting,
     management,
     finished,
+    participantsView,
     results,
     refresh,
     run,

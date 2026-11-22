@@ -36,6 +36,7 @@ const room: Room = {
   booting: false,
   management: false,
   finished: false,
+  participantsView: false,
   results: false,
   refresh: async () => {},
   run: () => {},

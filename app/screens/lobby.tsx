@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import Image from "next/image";
-import { Check, Copy, Play, RefreshCw, Share2, UserRoundMinus, Users } from "lucide-react";
+import { Check, Copy, Play, RefreshCw, Share2, Users } from "lucide-react";
 import type { State } from "@/lib/api";
 import type { Room } from "../use-room";
 import type { Providers } from "../use-providers";
 import { FiltersForm } from "./filters-form";
+import { ParticipantList } from "./participant-list";
 import { PreferenceForm } from "./preference-form";
 
 export function Invitation({
@@ -126,28 +127,7 @@ export function Lobby({
           <Users className="participants-icon" aria-hidden="true" />
           Participantes ({state.participants.length}/12)
         </h3>
-        <ul className="people">
-          {state.participants.map((p) => (
-            <li key={p.id}>
-              <span>
-                {p.name}
-                {p.is_host ? " · Anfitrión" : ""}
-              </span>
-              {host && !p.is_host && p.id !== state.me.id && (
-                <button
-                  disabled={busy}
-                  onClick={() => {
-                    if (window.confirm(`¿Expulsar a ${p.name} de la sesión?`))
-                      run("kick", { participant_id: p.id });
-                  }}
-                >
-                  <UserRoundMinus aria-hidden="true" />
-                  Expulsar
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <ParticipantList room={room} state={state} />
       </section>
       {host && (
         <div className="actions">

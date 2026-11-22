@@ -17,6 +17,7 @@ import {
 } from "@/test/harness";
 import { navigationHooks } from "@/test/navigation";
 import { Platea } from "./platea";
+import RoomParticipants from "./room/[id]/participants/page";
 import Room from "./room/[id]/page";
 import JoinStart from "./join/[code]/start/page";
 import { RoomContext } from "./use-room";
@@ -358,6 +359,132 @@ describe("ranking route", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continuar votando" }));
 
     expect(location.pathname).toBe("/room/room-1");
+  });
+});
+
+describe("participants route", () => {
+  const invitation = { code: "ABC234", expires_at: "2099-01-01T00:00:00Z" };
+  const participantsPath = "/room/room-1/participants";
+
+  it("moves the list and invitation out of Options and returns to the same voting deck", async () => {
+    saveAccess();
+    const api = fakeApi({
+      ...noProviders,
+      [`GET ${roomPath}`]: () => ({ ...votingState, invitation }),
+      [`POST ${roomPath}/vote`]: () => new Promise(() => {}),
+    });
+    const user = userEvent.setup();
+    const view = renderAt("/room/room-1", <Room />);
+
+    await user.click(await screen.findByRole("button", { name: "Me gusta" }));
+    expect(await screen.findByRole("heading", { name: "Segunda" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Opciones" }));
+    const menu = within(screen.getByRole("dialog"));
+    expect(menu.queryByText("Beto")).not.toBeInTheDocument();
+    expect(menu.queryByText(invitation.code)).not.toBeInTheDocument();
+    await user.click(menu.getByRole("button", { name: "Administrar participantes" }));
+    view.rerenderAfterNavigation(<Room />);
+
+    expect(await screen.findByRole("heading", { name: "Participantes" })).toBeInTheDocument();
+    expect(location.pathname).toBe(participantsPath);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const list = within(screen.getByRole("list", { name: "Participantes" }));
+    expect(list.getByText("Ana · Anfitrión")).toBeInTheDocument();
+    expect(list.getByText("Beto")).toBeInTheDocument();
+    expect(screen.getByText(invitation.code)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Continuar votando" }));
+    view.rerenderAfterNavigation(<Room />);
+    expect(await screen.findByRole("heading", { name: "Segunda" })).toBeInTheDocument();
+    expect(location.pathname).toBe("/room/room-1");
+    expect(api.count(`POST ${roomPath}/resume`)).toBe(0);
+  });
+
+  it("restores the dedicated view directly and lets the host rotate the code and kick a guest", async () => {
+    saveAccess();
+    let state = { ...votingState, invitation };
+    const api = fakeApi({
+      ...noProviders,
+      [`GET ${roomPath}`]: () => state,
+      [`POST ${roomPath}/rotate`]: () => {
+        state = { ...state, invitation: { ...invitation, code: "DEF567" } };
+        return { ok: true };
+      },
+      [`POST ${roomPath}/kick`]: () => {
+        state = { ...state, participants: [host] };
+        return { ok: true };
+      },
+    });
+    const user = userEvent.setup();
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    renderAt(participantsPath, <RoomParticipants />);
+
+    expect(await screen.findByText(invitation.code)).toBeInTheDocument();
+    const rotate = screen.getByRole("button", { name: "Nuevo código" });
+    await waitFor(() => expect(rotate).toBeEnabled());
+    await user.click(rotate);
+    expect(await screen.findByText("DEF567")).toBeInTheDocument();
+    const kick = screen.getByRole("button", { name: "Expulsar" });
+    await user.click(kick);
+    expect(api.count(`POST ${roomPath}/kick`)).toBe(0);
+    await user.click(kick);
+
+    await waitFor(() => expect(screen.queryByText("Beto")).not.toBeInTheDocument());
+    expect(window.confirm).toHaveBeenCalledWith("¿Expulsar a Beto de la sesión?");
+    expect(api.calls).toContainEqual(
+      expect.objectContaining({
+        route: `POST ${roomPath}/kick`,
+        body: { participant_id: guest.id },
+      }),
+    );
+    expect(location.pathname).toBe(participantsPath);
+  });
+
+  it("lets a guest open the read-only list from the ranking", async () => {
+    saveAccess();
+    fakeApi({
+      ...noProviders,
+      [`GET ${roomPath}`]: () => ({ ...votingState, me: guest, invitation: null }),
+    });
+    const user = userEvent.setup();
+    const view = renderAt("/room/room-1/manage", <Room />);
+
+    await user.click(await screen.findByRole("button", { name: "Opciones" }));
+    await user.click(screen.getByRole("button", { name: "Administrar participantes" }));
+    view.rerenderAfterNavigation(<Room />);
+
+    expect(await screen.findByText("Beto")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Invitación" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expulsar" })).not.toBeInTheDocument();
+  });
+
+  it.each(["finished", "closed"] as const)("returns %s participants to ranking", async (phase) => {
+    saveAccess();
+    fakeApi({
+      ...noProviders,
+      [`GET ${roomPath}`]: () => ({
+        ...votingState,
+        session: { ...votingState.session, status: phase === "closed" ? "closed" : "voting" },
+        votes: votingState.movies.map(({ id }) => ({
+          participant_id: host.id,
+          movie_id: id,
+          liked: true,
+        })),
+        invitation: phase === "closed" ? null : invitation,
+      }),
+    });
+    const view = renderAt(participantsPath, <RoomParticipants />);
+
+    const back = await screen.findByRole("button", { name: "Ver ranking" });
+    expect(location.pathname).toBe(participantsPath);
+    if (phase === "closed") {
+      expect(screen.queryByRole("heading", { name: "Invitación" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Expulsar" })).not.toBeInTheDocument();
+    }
+    await userEvent.click(back);
+    view.rerenderAfterNavigation(<RoomParticipants />);
+    expect(await screen.findByRole("heading", { name: "Ranking" })).toBeInTheDocument();
+    expect(location.pathname).toBe("/room/room-1/manage");
   });
 });
 

@@ -531,7 +531,6 @@ describe("options sheet", () => {
     const open = () => user.click(screen.getByRole("button", { name: "Opciones" }));
 
     await open();
-    expect(within(screen.getByRole("dialog")).getByText("Beto")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Ver ranking" }));
     expect(location.pathname).toBe("/room/room-1/manage");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
