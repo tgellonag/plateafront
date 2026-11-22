@@ -15,7 +15,7 @@ export function WelcomeSession() {
   const room = useContext(RoomContext);
   if (!room) throw new Error("Platea is required");
   const { busy, enter } = room;
-  const { name, isTest } = draft;
+  const { name } = draft;
   const code =
     draft.code ??
     (namePath === "/" ? "" : decodeURIComponent(namePath.split("/")[2]).toUpperCase());
@@ -25,7 +25,7 @@ export function WelcomeSession() {
   async function connect(create: boolean) {
     if (busy) return;
     setPendingAction(create ? "create" : "join");
-    if (await enter(create, { name, code, isTest })) setDraft(emptyWelcomeDraft);
+    if (await enter(create, { name, code, isTest: false })) setDraft(emptyWelcomeDraft);
   }
   return (
     <section className="welcome">
@@ -82,17 +82,6 @@ export function WelcomeSession() {
             </>
           )}
         </button>
-        <details className="session-options">
-          <summary>Opciones</summary>
-          <label className="test-option">
-            <input
-              type="checkbox"
-              checked={isTest}
-              onChange={(e) => setDraft({ ...draft, isTest: e.target.checked })}
-            />
-            Sesión de demostración (excluir de métricas)
-          </label>
-        </details>
       </form>
       <TmdbAttribution />
     </section>

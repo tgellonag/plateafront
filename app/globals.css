@@ -338,18 +338,6 @@ header {
   height: 1px;
   background: var(--line);
 }
-.session-options {
-  margin-top: 16px;
-}
-.test-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.75rem;
-}
 .room-heading {
   display: flex;
   align-items: center;
