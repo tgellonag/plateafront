@@ -9,6 +9,7 @@ import { RankingList } from "./ranking";
 import { FiltersSummary } from "./filters-form";
 import { PreferenceForm } from "./preference-form";
 import { Sheet } from "./sheet";
+import { Invitation } from "./lobby";
 
 function hostActions(state: State) {
   const { session } = state;
@@ -152,6 +153,7 @@ export function OptionsMenu({
         <MoreHorizontal aria-hidden="true" />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)}>
+        {open && state.invitation && <Invitation room={room} invitation={state.invitation} />}
         <FiltersSummary filters={session.filters} providers={providers} />
         {state.me.is_host && session.status === "voting" && (
           <section>
