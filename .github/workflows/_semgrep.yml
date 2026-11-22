@@ -1,4 +1,4 @@
-name: _semgrep
+name: Paso · Semgrep
 
 on:
   workflow_call:

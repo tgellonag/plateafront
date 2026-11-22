@@ -1,4 +1,4 @@
-name: _test
+name: Paso · Tests (Vitest)
 
 on:
   workflow_call:

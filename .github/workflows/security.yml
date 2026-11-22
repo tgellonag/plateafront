@@ -1,7 +1,7 @@
 # Escaneo de seguridad: Semgrep (SAST) y Trivy fs (dependencias, secretos y misconfig).
 # Corre semanalmente (los CVE aparecen aunque el código no cambie) y en los PR que cambian
 # las dependencias.
-name: Security scan
+name: Seguridad · Semgrep + Trivy
 
 on:
   schedule:
