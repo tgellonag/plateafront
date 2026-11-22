@@ -7,10 +7,12 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    setupFiles: ["./test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
+      thresholds: { statements: 75, branches: 75, functions: 75, lines: 75 },
     },
   },
 });
