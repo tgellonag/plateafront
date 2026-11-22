@@ -271,6 +271,75 @@ describe("VoteQueue", () => {
     expect(queue.confirmed.get(11)?.liked).toBe(false);
     expect(queue.errors).toHaveLength(1);
   });
+
+  it("VOTE-R6 drops votes that can no longer be sent once the session closes", async () => {
+    vi.useFakeTimers();
+    try {
+      const storage = memoryStorage();
+      const send = vi.fn(saved).mockRejectedValue(new Error("Sin conexión"));
+      const queue = new VoteQueue(
+        room(),
+        () => storage,
+        send,
+        async () => {},
+      );
+
+      queue.enqueue(10, true);
+      queue.enqueue(11, false);
+      await vi.runAllTimersAsync();
+      expect(queue.hasPending).toBe(true);
+
+      queue.reconcile({
+        ...room([{ participant_id: "p1", movie_id: 10, liked: true }]),
+        session: { id: "s1", round: 1, status: "closed" },
+      });
+
+      expect(queue.hasPending).toBe(false);
+      expect(queue.errors).toEqual([]);
+      expect(queue.confirmed.get(10)).toMatchObject({ movie_id: 10, liked: true });
+      expect(storage.getItem("platea-votes-s1-p1")).toBe("[]");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("VOTE-R6 drops pending votes when access is revoked", async () => {
+    vi.useFakeTimers();
+    try {
+      const send = vi.fn(saved).mockRejectedValue(new Error("Sin conexión"));
+      const queue = new VoteQueue(room(), memoryStorage, send, async () => {});
+
+      queue.enqueue(10, true);
+      await vi.runAllTimersAsync();
+      queue.revoke();
+
+      expect(queue.hasPending).toBe(false);
+      expect(queue.errors).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("VOTE-R6 keeps votes from earlier batches pending when a new batch arrives", async () => {
+    vi.useFakeTimers();
+    try {
+      const send = vi.fn(saved).mockRejectedValue(new Error("Sin conexión"));
+      const queue = new VoteQueue(room(), memoryStorage, send, async () => {});
+
+      queue.enqueue(10, true);
+      await vi.runAllTimersAsync();
+      queue.reconcile({
+        ...room(),
+        session: { id: "s1", round: 2, status: "voting" },
+        movies: [...room().movies, { id: 12, round: 2, title: "C" }],
+      });
+
+      expect(queue.hasPending).toBe(true);
+      expect(queue.pending[0]).toMatchObject({ movie_id: 10, round: 1 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("shouldRefreshRoom", () => {
