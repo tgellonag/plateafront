@@ -19,3 +19,7 @@ uno de los labels `release:major`, `release:minor` o `release:patch` (ver `VERSI
 ## v0.1.2 - 2026-11-21
 
 - Reassure players they can keep voting when Gemini fails (#30)
+
+## v0.1.3 - 2026-11-22
+
+- Tuck Gemini failure details behind a Detalles toggle (#31)
