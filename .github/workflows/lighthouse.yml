@@ -1,6 +1,6 @@
-# Lighthouse CI: prueba de laboratorio de / y de /room/[id] (con un backend simulado). El reporte queda
-# como artefacto del run
-# (no se sube a ningún servicio externo). Solo avisa: las aserciones están en "warn" en lighthouserc.js.
+# Lighthouse CI: prueba de laboratorio de la pantalla de entrada (/). El resumen queda en el Job Summary
+# y el reporte completo como artefacto del run (no se sube a ningún servicio externo). Solo avisa:
+# las aserciones están en "warn" en lighthouserc.js.
 name: CI · Lighthouse
 
 on:
@@ -38,9 +38,10 @@ jobs:
 
       - name: Lighthouse CI
         run: npm run lhci
-        env:
-          # Chrome ya viene instalado en el runner; lhci lo necesita explícito para el script de Puppeteer.
-          CHROME_PATH: /usr/bin/google-chrome
+
+      - name: Resumen de Lighthouse
+        if: always()
+        run: node scripts/lighthouse-summary.mjs
 
       - name: Reporte de Lighthouse
         if: always()
