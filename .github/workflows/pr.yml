@@ -1,3 +1,5 @@
+# CI de pull requests: quality, tests con cobertura y SAST. El build lo hace Vercel (preview).
+# Trivy corre en security.yml (semanal y PRs que cambian dependencias).
 name: CI · PR
 
 on:
@@ -20,14 +22,6 @@ jobs:
     name: Test
     uses: ./.github/workflows/_test.yml
 
-  build:
-    name: Build
-    uses: ./.github/workflows/_build.yml
-
   semgrep:
     name: SAST
     uses: ./.github/workflows/_semgrep.yml
-
-  trivy:
-    name: SCA
-    uses: ./.github/workflows/_trivy.yml
