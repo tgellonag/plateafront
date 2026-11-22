@@ -10,28 +10,23 @@ import type { Providers } from "../use-providers";
 import { FiltersForm } from "./filters-form";
 import { PreferenceForm } from "./preference-form";
 
-export function Lobby({
+export function Invitation({
   room,
-  state,
-  providers,
+  invitation,
 }: {
   room: Room;
-  state: State;
-  providers: Providers;
+  invitation: NonNullable<State["invitation"]>;
 }) {
   const { busy, run, setError, setNotice } = room;
   const [copyCount, setCopyCount] = useState(0),
     [qr, setQr] = useState(""),
     [seconds, setSeconds] = useState(300);
-  const host = state.me.is_host;
-  const invitation = state.invitation;
   useEffect(() => {
     if (!copyCount) return;
     const timer = setTimeout(() => setCopyCount(0), 1000);
     return () => clearTimeout(timer);
   }, [copyCount]);
   useEffect(() => {
-    if (!invitation) return;
     const update = () => {
       const left = Math.max(0, Math.ceil((Date.parse(invitation.expires_at) - Date.now()) / 1000));
       setSeconds(left);
@@ -57,56 +52,75 @@ export function Lobby({
     }
   }
   return (
+    <section>
+      <h2>Invitación</h2>
+      <p className="code">{invitation.code}</p>
+      <p>
+        Vence en {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+      </p>
+      {qr && (
+        <Image
+          unoptimized
+          width={180}
+          height={180}
+          className="qr"
+          src={qr}
+          alt="QR de invitación a la sala"
+        />
+      )}
+      <div className="actions invitation-actions">
+        <button
+          aria-label={copyCount ? "Código copiado. Copiar de nuevo" : "Copiar código"}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(invitation.code);
+              setCopyCount((count) => count + 1);
+            } catch {
+              setError("No se pudo copiar el código. Cópialo manualmente.");
+            }
+          }}
+        >
+          {copyCount ? (
+            <Check key={copyCount} className="copy-confirmation" aria-hidden="true" />
+          ) : (
+            <Copy aria-hidden="true" />
+          )}
+          Copiar código
+        </button>
+        <button onClick={() => void share(`${location.origin}/join/${invitation.code}`)}>
+          <Share2 aria-hidden="true" />
+          Compartir
+        </button>
+        <button disabled={busy} onClick={() => run("rotate")}>
+          <RefreshCw aria-hidden="true" />
+          Nuevo código
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export function Lobby({
+  room,
+  state,
+  providers,
+}: {
+  room: Room;
+  state: State;
+  providers: Providers;
+}) {
+  const { busy, run } = room;
+  const host = state.me.is_host;
+  return (
     <div className="room-grid">
       <section className="panel lobby">
-        <h2>Invitación</h2>
-        {host && invitation ? (
-          <>
-            <p className="code">{invitation.code}</p>
-            <p>
-              Vence en {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
-            </p>
-            {qr && (
-              <Image
-                unoptimized
-                width={180}
-                height={180}
-                className="qr"
-                src={qr}
-                alt="QR de invitación a la sala"
-              />
-            )}
-            <div className="actions invitation-actions">
-              <button
-                aria-label={copyCount ? "Código copiado. Copiar de nuevo" : "Copiar código"}
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(invitation.code);
-                    setCopyCount((count) => count + 1);
-                  } catch {
-                    setError("No se pudo copiar el código. Cópialo manualmente.");
-                  }
-                }}
-              >
-                {copyCount ? (
-                  <Check key={copyCount} className="copy-confirmation" aria-hidden="true" />
-                ) : (
-                  <Copy aria-hidden="true" />
-                )}
-                Copiar código
-              </button>
-              <button onClick={() => void share(`${location.origin}/join/${invitation.code}`)}>
-                <Share2 aria-hidden="true" />
-                Compartir
-              </button>
-              <button disabled={busy} onClick={() => run("rotate")}>
-                <RefreshCw aria-hidden="true" />
-                Nuevo código
-              </button>
-            </div>
-          </>
+        {host && state.invitation ? (
+          <Invitation room={room} invitation={state.invitation} />
         ) : (
-          <p>Esperando que el anfitrión inicie la votación.</p>
+          <>
+            <h2>Invitación</h2>
+            <p>Esperando que el anfitrión inicie la votación.</p>
+          </>
         )}
         <h3>
           <Users className="participants-icon" aria-hidden="true" />
