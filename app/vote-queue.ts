@@ -156,6 +156,7 @@ export class VoteQueue {
           this.acknowledge(pending, canonical);
       }
     }
+    if (room.session.status === "closed") this.pending = [];
     for (const vote of this.pending) {
       if (!this.eligible(vote))
         vote.error = this.unsaved(
@@ -170,11 +171,7 @@ export class VoteQueue {
   revoke() {
     if (this.stopped) return;
     this.revoked = true;
-    for (const vote of this.pending)
-      vote.error = this.unsaved(
-        vote,
-        "Tu acceso ya no está activo. Descarta este voto para salir.",
-      );
+    this.pending = [];
     this.persist();
   }
   retry() {
