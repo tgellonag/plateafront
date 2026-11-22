@@ -116,7 +116,7 @@ describe("session step", () => {
     expect(api.count("POST /api/v1/sessions")).toBe(1);
   });
 
-  it("INV-R7 creates a demo session when the demo option is checked", async () => {
+  it("creates a regular session without showing demo options", async () => {
     const user = userEvent.setup();
     const api = fakeApi({
       ...noProviders,
@@ -131,12 +131,12 @@ describe("session step", () => {
     );
     await enterName(user, "Ana");
 
-    await user.click(await screen.findByText("Opciones"));
-    await user.click(screen.getByLabelText("Sesión de demostración (excluir de métricas)"));
-    await user.click(screen.getByRole("button", { name: "Crear sesión" }));
+    const create = await screen.findByRole("button", { name: "Crear sesión" });
+    expect(screen.queryByText("Opciones")).not.toBeInTheDocument();
+    await user.click(create);
 
     expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
-    expect(api.bodies("POST /api/v1/sessions")).toEqual([{ name: "Ana", is_test: true }]);
+    expect(api.bodies("POST /api/v1/sessions")).toEqual([{ name: "Ana", is_test: false }]);
   });
 });
 

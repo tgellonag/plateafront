@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-export const emptyWelcomeDraft = { name: "", code: null as string | null, isTest: false };
+export const emptyWelcomeDraft = { name: "", code: null as string | null };
 
 const WelcomeDraftContext = createContext<ReturnType<typeof useDraft> | null>(null);
 
