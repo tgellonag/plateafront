@@ -12,7 +12,7 @@ import { Results, OptionsMenu } from "./screens/results";
 export function Platea({ children }: { children?: ReactNode }) {
   const room = useRoom();
   const providers = useProviders();
-  const { access, state, voteQueue, error, notice, busy, booting, recentAccess, results } = room;
+  const { access, state, voteQueue, error, notice, busy, booting, results } = room;
   const session = state?.session;
   return (
     <RoomContext value={room}>
@@ -20,12 +20,11 @@ export function Platea({ children }: { children?: ReactNode }) {
         {error && (
           <div role="alert" className="alert">
             {error}
-            <button
-              onClick={() => (access ? void room.refresh() : void room.resume())}
-              disabled={busy || (!access && !recentAccess)}
-            >
-              <RefreshCw aria-hidden="true" /> Reintentar
-            </button>
+            {access && (
+              <button onClick={() => void room.refresh()} disabled={busy}>
+                <RefreshCw aria-hidden="true" /> Reintentar
+              </button>
+            )}
             {access && !state && (
               <button disabled={busy} onClick={room.leave}>
                 <LogOut aria-hidden="true" />

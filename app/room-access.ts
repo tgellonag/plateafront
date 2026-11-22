@@ -1,14 +1,9 @@
 import { request, type Access } from "@/lib/api";
 
-export async function resumeAccess(saved: Access) {
-  await request(`/api/v1/sessions/${saved.session_id}/resume`, saved.token, {});
-  return saved;
-}
-
 export function savedRoomAccess(pathname: string): Access | null {
   const [, route, roomID] = pathname.split("/");
-  const id = route === "room" ? roomID : sessionStorage.getItem("platea-last");
-  const saved = id && sessionStorage.getItem(`platea-${id}`);
+  if (route !== "room" || !roomID) return null;
+  const saved = sessionStorage.getItem(`platea-${roomID}`);
   return saved ? JSON.parse(saved) : null;
 }
 
@@ -16,7 +11,6 @@ export function saveRoomAccess(access: Access) {
   const saved = JSON.stringify(access);
   sessionStorage.setItem(`platea-${access.session_id}`, saved);
   sessionStorage.setItem("platea-recent", saved);
-  sessionStorage.setItem("platea-last", access.session_id);
 }
 
 export function enterRoom(
