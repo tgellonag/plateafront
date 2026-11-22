@@ -34,7 +34,7 @@ export function WelcomeName() {
             placeholder="Nombre"
           />
         </label>
-        <button className="primary" disabled={!draft.name.trim()}>
+        <button type="submit" className="primary" disabled={!draft.name.trim()}>
           Continuar
           <ArrowRight aria-hidden="true" />
         </button>

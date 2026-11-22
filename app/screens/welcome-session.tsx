@@ -55,7 +55,7 @@ export function WelcomeSession() {
             className="code-input"
           />
         </label>
-        <button className="primary" disabled={busy || code.length !== 6}>
+        <button type="submit" className="primary" disabled={busy || code.length !== 6}>
           {busy && pendingAction === "join" ? (
             <>
               <LoaderCircle className="animate-spin" aria-hidden="true" />
