@@ -470,6 +470,59 @@ describe("Gemini curation", () => {
   });
 });
 
+describe("group preference", () => {
+  it("AI-R3 lets the host save a trimmed preference from the lobby", async () => {
+    const user = userEvent.setup();
+    const room = renderLobby();
+
+    const save = screen.getByRole("button", { name: "Guardar preferencia" });
+    expect(save).toBeDisabled();
+    expect(screen.getByText("0/120")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("¿Qué tienen ganas de ver?"), "  algo   liviano ");
+    expect(screen.getByText("17/120")).toBeInTheDocument();
+    await user.click(save);
+
+    expect(room.run).toHaveBeenCalledWith("preference", { group_preference: "algo liviano" });
+  });
+
+  it("AI-R3 hides the preference from guests in the lobby", () => {
+    render(<Lobby room={fakeRoom()} state={{ ...lobbyState, me: guest }} providers={providers} />);
+
+    expect(screen.queryByLabelText("¿Qué tienen ganas de ver?")).not.toBeInTheDocument();
+  });
+
+  it("AI-R3 lets the host edit the saved preference while voting", async () => {
+    const user = userEvent.setup();
+    const room = fakeRoom();
+    const state: State = {
+      ...votingState,
+      session: { ...votingState.session, group_preference: "algo liviano" },
+    };
+    render(<OptionsMenu room={room} state={state} providers={providers} />);
+
+    await user.click(screen.getByRole("button", { name: "Opciones" }));
+    const field = within(screen.getByRole("dialog")).getByLabelText("¿Qué tienen ganas de ver?");
+    expect(field).toHaveValue("algo liviano");
+    await user.clear(field);
+    await user.click(screen.getByRole("button", { name: "Guardar preferencia" }));
+
+    expect(room.run).toHaveBeenCalledWith("preference", { group_preference: "" });
+  });
+
+  it("AI-R3 offers no preference to guests while voting", async () => {
+    const user = userEvent.setup();
+    render(
+      <OptionsMenu room={fakeRoom()} state={{ ...votingState, me: guest }} providers={providers} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Opciones" }));
+
+    expect(
+      within(screen.getByRole("dialog")).queryByLabelText("¿Qué tienen ganas de ver?"),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("options sheet", () => {
   it("RANK-R5 gives the host the ranking, a new batch and leaving", async () => {
     const user = userEvent.setup();
