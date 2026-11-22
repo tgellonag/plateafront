@@ -897,6 +897,9 @@ dd {
 .my-vote p {
   margin: 0;
 }
+.options-preference {
+  margin-bottom: 16px;
+}
 .preference {
   display: grid;
   gap: 8px;
