@@ -34,11 +34,13 @@ const entryRouter = {
 describe("session entry", () => {
   it("INV-R8 keeps the startup screen busy before showing the entry form", () => {
     const html = renderToStaticMarkup(
-      <PathnameContext value="/room/room-1/manage">
-        <Platea>
-          <p>Formulario de ingreso</p>
-        </Platea>
-      </PathnameContext>,
+      <AppRouterContext value={entryRouter}>
+        <PathnameContext value="/room/room-1/manage">
+          <Platea>
+            <p>Formulario de ingreso</p>
+          </Platea>
+        </PathnameContext>
+      </AppRouterContext>,
     );
 
     expect(html).toContain('aria-busy="true"');
@@ -86,9 +88,11 @@ describe("session entry", () => {
   ])("INV-R8 redirects %s to %s when there is no name", (from, to) => {
     const render = () =>
       renderToStaticMarkup(
-        <PathnameContext value={from}>
-          <SessionEntry />
-        </PathnameContext>,
+        <AppRouterContext value={entryRouter}>
+          <PathnameContext value={from}>
+            <SessionEntry />
+          </PathnameContext>
+        </AppRouterContext>,
       );
 
     expect(render).toThrow(expect.objectContaining({ digest: `NEXT_REDIRECT;replace;${to};307;` }));

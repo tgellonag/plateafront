@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { useContext, useState } from "react";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -149,6 +149,49 @@ describe("restoring access", () => {
 });
 
 describe("room actions", () => {
+  it("ignores the second click of a double-click without blocking the next deliberate vote", async () => {
+    saveAccess();
+    const votePath = `POST ${roomPath}/vote`;
+    const api = fakeApi({
+      ...noProviders,
+      [`GET ${roomPath}`]: () => votingState,
+      [votePath]: () => new Promise(() => {}),
+    });
+    renderAt("/room/room-1", <Platea />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Me gusta" }), { detail: 1 });
+    expect(await screen.findByRole("heading", { name: "Segunda" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Me gusta" }), { detail: 2 });
+    expect(screen.getByRole("heading", { name: "Segunda" })).toBeInTheDocument();
+    expect(api.bodies(votePath)).toEqual([{ round: 1, movie_id: 1, liked: true }]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Me gusta" }));
+    expect(await screen.findByRole("heading", { name: "Ranking" })).toBeInTheDocument();
+  });
+
+  it("shows a Spanish alert and recovers after a failed room request", async () => {
+    saveAccess();
+    let offline = false;
+    fakeApi({
+      ...noProviders,
+      [`GET ${roomPath}`]: () => {
+        if (offline) throw new TypeError("Failed to fetch");
+        return votingState;
+      },
+    });
+    renderAt("/room/room-1", <Platea />);
+    await screen.findByRole("heading", { name: "Votación" });
+
+    offline = true;
+    act(() => window.dispatchEvent(new Event("focus")));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No hay conexión con el servidor. Reintenta.");
+
+    offline = false;
+    await userEvent.click(within(alert).getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
+
   it("ROOM-R10 keeps the room after a rejected action and invalidates access on a 401 refresh", async () => {
     saveAccess();
     let revoked = false;

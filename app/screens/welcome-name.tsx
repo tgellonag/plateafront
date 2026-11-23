@@ -9,6 +9,10 @@ export function WelcomeName() {
   const router = useRouter();
   const pathname = usePathname();
   const [draft, setDraft] = useWelcomeDraft();
+  const name = draft.name.trim();
+  const hasVisibleName = /[^\p{White_Space}\p{Default_Ignorable_Code_Point}\p{Cc}\p{M}]/u.test(
+    name,
+  );
 
   return (
     <section className="welcome">
@@ -16,8 +20,8 @@ export function WelcomeName() {
         className="panel"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!draft.name.trim()) return;
-          setDraft({ ...draft, name: draft.name.trim() });
+          if (!hasVisibleName) return;
+          setDraft({ ...draft, name });
           router.push(pathname.startsWith("/join/") ? `${pathname}/start` : "/start");
         }}
       >
@@ -34,7 +38,7 @@ export function WelcomeName() {
             placeholder="Nombre"
           />
         </label>
-        <button type="submit" className="primary" disabled={!draft.name.trim()}>
+        <button type="submit" className="primary" disabled={!hasVisibleName}>
           Continuar
           <ArrowRight aria-hidden="true" />
         </button>

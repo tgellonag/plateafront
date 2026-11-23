@@ -33,6 +33,23 @@ async function enterName(user: ReturnType<typeof userEvent.setup>, name: string)
 }
 
 describe("name step", () => {
+  it("rejects a name made only of invisible characters without blocking Unicode names", async () => {
+    const user = userEvent.setup();
+    renderAt("/", <WelcomeName />);
+    const submit = screen.getByRole("button", { name: "Continuar" });
+
+    await enterName(user, " \u200b\u200d\ufe0f\u2060 ");
+    expect(submit).toBeDisabled();
+    await user.keyboard("{Enter}");
+    expect(navigation.router.push).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByPlaceholderText("Nombre"));
+    await enterName(user, " Zoë 李🎬 ");
+    await user.click(submit);
+    expect(navigation.router.push).toHaveBeenCalledExactlyOnceWith("/start");
+    expect(screen.getByPlaceholderText("Nombre")).toHaveValue("Zoë 李🎬");
+  });
+
   it.each([
     ["/", "/start"],
     ["/join/abc234", "/join/abc234/start"],
@@ -72,12 +89,19 @@ describe("session step", () => {
 
     expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
     expect(api.bodies("POST /api/v1/join")).toEqual([{ name: "Ana", code: "ABC234", tokens: [] }]);
-    expect(location.pathname).toBe("/room/room-1");
+    expect(navigation.router.replace).toHaveBeenCalledExactlyOnceWith("/room/room-1");
+    expect(navigation.router.push).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("platea-room-1")).toBe(JSON.stringify(access));
   });
 
   it("INV-R10 shows why entry failed and keeps the typed code", async () => {
     const user = userEvent.setup();
-    fakeApi({ ...noProviders, "POST /api/v1/join": () => json({ error: "Código vencido" }, 404) });
+    const api = fakeApi({
+      ...noProviders,
+      "POST /api/v1/join": ({ code }: { code: string }) =>
+        code === "ABC234" ? access : json({ error: "Código vencido" }, 404),
+      "GET /api/v1/sessions/room-1": () => lobbyState,
+    });
     renderAt(
       "/start",
       <AfterNameStep>
@@ -93,7 +117,15 @@ describe("session step", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Código vencido");
     expect(screen.getByRole("heading", { name: "Hola, Ana" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Código de invitación")).toHaveValue("XYZ789");
+    const code = screen.getByLabelText("Código de invitación");
+    expect(code).toHaveValue("XYZ789");
+    await user.clear(code);
+    await user.paste(" abc234 ");
+    expect(code).toHaveValue("ABC234");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(join);
+    expect(await screen.findByRole("heading", { name: "Sala" })).toBeInTheDocument();
+    expect(api.count("POST /api/v1/join")).toBe(2);
   });
 
   it("INV-R10 shows which action is connecting and does not send it twice", async () => {

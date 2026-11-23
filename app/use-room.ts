@@ -8,7 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { enterRoom, savedRoomAccess, saveRoomAccess } from "./room-access";
 import { createRoomRefresher, watchRoom } from "./room-live";
 import { VoteQueue, type VoteReceipt } from "./vote-queue";
@@ -24,6 +24,7 @@ export const RoomContext = createContext<Room | null>(null);
 // Session lifecycle: restoring active access, live sync, actions and leaving. Screens only render.
 export function useRoom() {
   const pathname = usePathname();
+  const router = useRouter();
   const managementRoute = pathname.endsWith("/manage");
   const participantsRoute = pathname.endsWith("/participants");
   const [access, setAccess] = useState<Access | null>(null),
@@ -92,9 +93,11 @@ export function useRoom() {
       if (signal?.aborted) return;
       setRecentAccess(next);
       setNotice("");
+      let saved = true;
       try {
         saveRoomAccess(next);
       } catch {
+        saved = false;
         setNotice(
           "El navegador no permite guardar tu acceso. No recargues ni cierres esta pestaña durante la sesión.",
         );
@@ -119,9 +122,7 @@ export function useRoom() {
       setVoteQueue(queue);
       setState(ready);
       setAccess(next);
-      const path = `/room/${next.session_id}`;
-      if (![path, `${path}/manage`, `${path}/participants`].includes(location.pathname))
-        history.pushState({}, "", path);
+      return saved;
     },
     [refresher],
   );
@@ -235,7 +236,12 @@ export function useRoom() {
     setError("");
     try {
       const next = await enterRoom(create, { name, code }, recentAccess);
-      await activate(next);
+      const saved = await activate(next);
+      const path = `/room/${next.session_id}`;
+      // Replace the submitted form with a real Next route. Keep the current
+      // component (and access in memory) if the browser blocked storage.
+      if (saved) router.replace(path);
+      else history.replaceState({}, "", path);
       return true;
     } catch (e) {
       setError((e as Error).message);

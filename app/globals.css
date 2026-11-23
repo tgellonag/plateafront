@@ -309,6 +309,7 @@ header {
   background: #19191f;
 }
 .welcome h1 {
+  overflow-wrap: anywhere;
   margin-bottom: 24px;
 }
 .welcome form > button,
