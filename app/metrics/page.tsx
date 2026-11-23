@@ -53,7 +53,7 @@ export default function MetricsPage() {
             autoComplete="off"
           />
         </label>
-        <button disabled={busy}>
+        <button type="submit" disabled={busy}>
           <ChartNoAxesColumn aria-hidden="true" />
           {busy ? "Consultando…" : "Consultar"}
         </button>

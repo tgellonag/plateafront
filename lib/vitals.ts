@@ -57,7 +57,8 @@ export function formatThreshold(name: VitalName) {
 // Solo las pantallas de la app, con los segmentos dinámicos ocultos. Las rutas reales llevan el id de la
 // sala y el código de invitación, que no deben guardarse. /vitals y /metrics no se miden.
 export function normalizePage(pathname: string): string | null {
-  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  let path = pathname;
+  while (path.length > 1 && path.endsWith("/")) path = path.slice(0, -1);
   if (path === "/" || path === "/start") return path;
   if (/^\/join\/[^/]+$/.test(path)) return "/join/[code]";
   if (/^\/join\/[^/]+\/start$/.test(path)) return "/join/[code]/start";

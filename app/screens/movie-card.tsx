@@ -105,7 +105,12 @@ export function MovieCard({
   const synopsisId = useId();
   const overview = movie.overview.trim();
   const canExpand = overview.length > 180;
-  const preview = canExpand ? `${overview.slice(0, 180).replace(/\s+\S*$/, "")}…` : overview;
+  const preview = canExpand
+    ? `${overview
+        .slice(0, 180)
+        .replace(/\s\S*$/, "")
+        .trimEnd()}…`
+    : overview;
   return (
     <article className={`movie-card${back ? " movie-card-back" : ""}`}>
       {(back || preloadMovieID === movie.id) && (

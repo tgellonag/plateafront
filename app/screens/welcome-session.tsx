@@ -41,7 +41,7 @@ export function WelcomeSession() {
         <label>
           Código de invitación
           <input
-            autoFocus
+            autoFocus // NOSONAR: único campo de la pantalla, el foco inicial es intencional
             required
             value={code}
             onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })}
@@ -55,7 +55,7 @@ export function WelcomeSession() {
             className="code-input"
           />
         </label>
-        <button className="primary" disabled={busy || code.length !== 6}>
+        <button type="submit" className="primary" disabled={busy || code.length !== 6}>
           {busy && pendingAction === "join" ? (
             <>
               <LoaderCircle className="animate-spin" aria-hidden="true" />
