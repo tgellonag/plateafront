@@ -29,6 +29,10 @@ const format = (name, value) => (name === "CLS" ? cls.format(value) : `${ms.form
 
 // Separa las filas con muestras suficientes de las que todavía no se pueden evaluar.
 export function analyze(summary) {
+  // Una respuesta rota debe hacer fallar el run: tratarla como «sin datos» dejaría el monitoreo
+  // en verde sin que nadie note que dejó de funcionar.
+  if (!Array.isArray(summary?.rows) || !Number.isFinite(summary?.min_samples))
+    throw new Error("Respuesta inesperada del backend: faltan rows o min_samples");
   const rows = [...summary.rows]
     .sort(
       (a, b) =>

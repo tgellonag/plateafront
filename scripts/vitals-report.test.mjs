@@ -71,6 +71,23 @@ describe("analyze", () => {
   });
 });
 
+describe("analyze con una respuesta inválida", () => {
+  it.each([
+    [undefined],
+    [null],
+    [{}],
+    [{ min_samples: 20 }],
+    [{ rows: [] }],
+    [{ rows: {}, min_samples: 20 }],
+  ])("falla con un mensaje claro en vez de tratarla como sin datos: %j", (response) => {
+    expect(() => analyze(response)).toThrow("Respuesta inesperada del backend");
+  });
+
+  it("acepta una respuesta válida sin filas", () => {
+    expect(analyze({ rows: [], min_samples: 20 }).status).toBe("insufficient");
+  });
+});
+
 describe("textos", () => {
   const options = { release: "abc1234", date, runUrl: "https://github.com/o/r/actions/runs/1" };
 
