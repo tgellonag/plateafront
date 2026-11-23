@@ -14,11 +14,12 @@ export function WelcomeSession() {
   const [pendingAction, setPendingAction] = useState<"join" | "create" | null>(null);
   const room = useContext(RoomContext);
   if (!room) throw new Error("Platea is required");
-  const { busy, enter } = room;
+  const { busy, enter, setError } = room;
   const { name } = draft;
   const code =
     draft.code ??
     (namePath === "/" ? "" : decodeURIComponent(namePath.split("/")[2]).toUpperCase());
+  const validCode = /^[A-Z2-9]{6}$/.test(code);
 
   if (!name) redirect(namePath);
 
@@ -33,7 +34,7 @@ export function WelcomeSession() {
         className="panel"
         onSubmit={(e) => {
           e.preventDefault();
-          if (busy || code.length !== 6) return;
+          if (busy || !validCode) return;
           void connect(false);
         }}
       >
@@ -44,8 +45,10 @@ export function WelcomeSession() {
             autoFocus // NOSONAR: único campo de la pantalla, el foco inicial es intencional
             required
             value={code}
-            onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })}
-            maxLength={6}
+            onChange={(e) => {
+              setDraft({ ...draft, code: e.target.value.trim().toUpperCase().slice(0, 6) });
+              setError("");
+            }}
             minLength={6}
             pattern="[A-Z2-9]{6}"
             placeholder="ABC234"
@@ -55,7 +58,7 @@ export function WelcomeSession() {
             className="code-input"
           />
         </label>
-        <button type="submit" className="primary" disabled={busy || code.length !== 6}>
+        <button type="submit" className="primary" disabled={busy || !validCode}>
           {busy && pendingAction === "join" ? (
             <>
               <LoaderCircle className="animate-spin" aria-hidden="true" />

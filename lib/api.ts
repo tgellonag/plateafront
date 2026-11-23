@@ -88,6 +88,9 @@ export async function request<T>(
     signal: signal
       ? AbortSignal.any([signal, AbortSignal.timeout(90000)])
       : AbortSignal.timeout(90000),
+  }).catch((error: unknown) => {
+    if (signal?.aborted && signal.reason?.name !== "TimeoutError") throw error;
+    throw new RequestError("No hay conexión con el servidor. Reintenta.", 0);
   });
   const data = await res
     .json()

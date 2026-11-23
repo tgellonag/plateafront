@@ -184,7 +184,7 @@ describe("/vitals", () => {
       }),
     );
     render(<VitalsPage />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo conectar");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No hay conexión con el servidor");
   });
 
   it("VITALS-F9 shows this visit live, with element, parts and thresholds", async () => {

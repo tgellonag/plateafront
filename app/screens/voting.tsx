@@ -69,19 +69,19 @@ export function Voting({
     });
   }, [upcomingPosters]);
   if (!current || !room.access) return null;
+  // A native double-click is still aimed at the previous card.
+  const vote = (liked: boolean, clickCount: number) => {
+    if (clickCount <= 1) voteQueue?.enqueue(current.id, liked);
+  };
   return (
     <section className="voting">
       <MovieCard key={current.id} movie={current} providers={providers} trailers={trailers} />
       <div className="vote-actions">
-        <button disabled={busy} onClick={() => voteQueue?.enqueue(current.id, false)}>
+        <button disabled={busy} onClick={(event) => vote(false, event.detail)}>
           <X aria-hidden="true" />
           No me gusta
         </button>
-        <button
-          className="primary"
-          disabled={busy}
-          onClick={() => voteQueue?.enqueue(current.id, true)}
-        >
+        <button className="primary" disabled={busy} onClick={(event) => vote(true, event.detail)}>
           <Heart aria-hidden="true" />
           Me gusta
         </button>
