@@ -1,0 +1,53 @@
+# Lighthouse CI: prueba de laboratorio de la pantalla de entrada (/). El resumen queda en el Job Summary
+# y el reporte completo como artefacto del run (no se sube a ningún servicio externo). Solo avisa:
+# las aserciones están en "warn" en lighthouserc.js.
+name: CI · Lighthouse
+
+on:
+  pull_request:
+    branches: [development, main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lighthouse CI
+        run: npm run lhci
+
+      - name: Resumen de Lighthouse
+        if: always()
+        run: node scripts/lighthouse-summary.mjs
+
+      - name: Reporte de Lighthouse
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse-report
+          path: .lighthouseci
+          if-no-files-found: warn
+          retention-days: 14
